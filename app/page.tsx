@@ -446,7 +446,7 @@ export default function ParkingSystem() {
                 },
                 general: {
                   firstHour: data.general?.firstHour || 0,
-                  subsequentHour: data.general?.subsequentHour || 0,
+                  subsequentHour: data.subsequentHour || 0,
                 },
               })
             }
@@ -1575,80 +1575,6 @@ export default function ParkingSystem() {
                 </div>
               )}
               {/* Recent Records */}
-              <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl md:rounded-3xl p-6 md:p-8 lg:p-10">
-                <div className="mb-6 md:mb-8">
-                  <h2 className="text-xl md:text-2xl lg:text-3xl font-semibold text-white mb-2">Сүүлийн бүртгэлүүд</h2>
-                  <p className="text-white/70 text-sm md:text-base">Таны хийсэн сүүлийн 3 бүртгэл</p>
-                </div>
-                <div className="space-y-4">
-                  {recentRecords.length === 0 ? (
-                    <div className="text-center py-8 md:py-12">
-                      <div className="w-16 h-16 md:w-20 md:h-20 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Car className="w-8 h-8 md:w-10 md:h-10 text-white/50" />
-                      </div>
-                      <p className="text-white/70 text-sm md:text-base">Одоогоор бүртгэл байхгүй байна</p>
-                    </div>
-                  ) : (
-                    recentRecords.map((record) => (
-                      <div
-                        key={record.id}
-                        className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl md:rounded-2xl p-4 md:p-6"
-                      >
-                        <div className="flex flex-col md:flex-row md:items-center justify-between space-y-3 md:space-y-0">
-                          <div className="space-y-1">
-                            <div className="flex items-center space-x-3">
-                              <span className="text-white font-semibold text-sm md:text-base">{record.carNumber}</span>
-                              <span
-                                className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                  record.type === "entry"
-                                    ? "bg-blue-500/20 text-blue-400 border border-blue-400/30"
-                                    : record.type === "completed"
-                                      ? "bg-green-500/20 text-green-400 border border-green-400/30"
-                                      : "bg-gray-500/20 text-gray-400 border border-gray-400/30"
-                                }`}
-                              >
-                                {record.type === "entry"
-                                  ? "Орсон"
-                                  : record.type === "completed"
-                                    ? "Гарсан"
-                                    : "Хаагдсан"}
-                              </span>
-                            </div>
-                            <p className="text-white/70 text-xs md:text-sm">
-                              {record.driverName} • {record.parkingArea}
-                            </p>
-                            <p className="text-white/50 text-xs">
-                              {formatDetailedTime(record.entryTime || record.timestamp)}
-                            </p>
-                          </div>
-                          <div className="flex items-center space-x-4">
-                            {record.type === "entry" && (
-                              <div className="text-right">
-                                <p className="text-white/70 text-xs">Одоогийн төлбөр</p>
-                                <p className="text-emerald-400 font-semibold text-sm md:text-base">
-                                  {calculateCurrentParkingFee(
-                                    record.entryTime || record.timestamp,
-                                    record.parkingArea,
-                                  ).toLocaleString()}
-                                  ₮
-                                </p>
-                              </div>
-                            )}
-                            {record.type === "completed" && record.amount && (
-                              <div className="text-right">
-                                <p className="text-white/70 text-xs">Төлсөн дүн</p>
-                                <p className="text-emerald-400 font-semibold text-sm md:text-base">
-                                  {record.amount.toLocaleString()}₮
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
             </div>
           )}
 
