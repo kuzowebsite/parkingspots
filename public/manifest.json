@@ -6,7 +6,8 @@
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#10b981",
-  "orientation": "portrait",
+  "orientation": "portrait-primary",
+  "scope": "/",
   "icons": [
     {
       "src": "/images/logo.png",
@@ -23,5 +24,6 @@
   ],
   "categories": ["business", "productivity"],
   "lang": "mn",
-  "dir": "ltr"
+  "dir": "ltr",
+  "prefer_related_applications": false
 }
