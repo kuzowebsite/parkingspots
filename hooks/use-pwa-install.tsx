@@ -19,10 +19,24 @@ export function usePWAInstall() {
   useEffect(() => {
     // Check if app is already installed
     const checkIfInstalled = () => {
+      // Check for standalone mode (PWA is installed)
       if (window.matchMedia("(display-mode: standalone)").matches) {
         setIsInstalled(true)
         return true
       }
+
+      // Check for iOS Safari standalone mode
+      if ((window.navigator as any).standalone === true) {
+        setIsInstalled(true)
+        return true
+      }
+
+      // Check if running in TWA (Trusted Web Activity) on Android
+      if (document.referrer.includes("android-app://")) {
+        setIsInstalled(true)
+        return true
+      }
+
       return false
     }
 
@@ -31,19 +45,25 @@ export function usePWAInstall() {
     }
 
     const handleBeforeInstallPrompt = (e: Event) => {
+      console.log("beforeinstallprompt event fired")
       e.preventDefault()
       setDeferredPrompt(e as BeforeInstallPromptEvent)
       setIsInstallable(true)
     }
 
     const handleAppInstalled = () => {
+      console.log("App was installed")
       setIsInstalled(true)
       setIsInstallable(false)
       setDeferredPrompt(null)
     }
 
+    // Listen for the beforeinstallprompt event
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt)
     window.addEventListener("appinstalled", handleAppInstalled)
+
+    // For debugging - check if the event listeners are working
+    console.log("PWA install listeners added")
 
     return () => {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt)
@@ -52,19 +72,40 @@ export function usePWAInstall() {
   }, [])
 
   const installApp = async () => {
-    if (deferredPrompt) {
-      try {
-        deferredPrompt.prompt()
-        const { outcome } = await deferredPrompt.userChoice
-        setDeferredPrompt(null)
-        setIsInstallable(false)
-        return outcome === "accepted"
-      } catch (error) {
-        console.error("Installation failed:", error)
+    if (!deferredPrompt) {
+      console.log("No deferred prompt available")
+
+      // For iOS Safari, show instructions
+      if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+        alert("iOS дээр суулгахын тулд: Safari-н доод хэсгээс 'Share' товч дарж, 'Add to Home Screen' сонгоно уу.")
         return false
       }
+
+      // For other browsers that don't support install prompt
+      alert("Таны browser PWA суулгахыг дэмжихгүй байна.")
+      return false
     }
-    return false
+
+    try {
+      console.log("Showing install prompt")
+      deferredPrompt.prompt()
+      const { outcome } = await deferredPrompt.userChoice
+      console.log("User choice:", outcome)
+
+      setDeferredPrompt(null)
+      setIsInstallable(false)
+
+      if (outcome === "accepted") {
+        console.log("User accepted the install prompt")
+        return true
+      } else {
+        console.log("User dismissed the install prompt")
+        return false
+      }
+    } catch (error) {
+      console.error("Installation failed:", error)
+      return false
+    }
   }
 
   return {
