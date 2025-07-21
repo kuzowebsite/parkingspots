@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Eye, EyeOff, Shield, AlertCircle, Download, Sparkles, Smartphone } from "lucide-react"
+import { Eye, EyeOff, Shield, AlertCircle, Download, Smartphone } from "lucide-react"
 import { usePWAInstall } from "@/hooks/use-pwa-install"
 
 export default function LoginPage() {
@@ -21,9 +21,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [showPassword, setShowPassword] = useState(false)
-  const [pageLoading, setPageLoading] = useState(true)
-  const [imagesPreloaded, setImagesPreloaded] = useState(false)
-  const [preloadProgress, setPreloadProgress] = useState(0)
+  const [pageLoading, setPageLoading] = useState(false)
   const [installLoading, setInstallLoading] = useState(false)
 
   // PWA install hook
@@ -69,49 +67,9 @@ export default function LoginPage() {
     }
   }
 
-  // Preload images function
-  const preloadImages = async () => {
-    const imagesToPreload = [
-      "/images/background.webp",
-      "/images/logo.png",
-      siteConfig.siteBackground,
-      siteConfig.siteLogo,
-    ].filter(Boolean)
-
-    let loadedCount = 0
-    const totalImages = imagesToPreload.length
-
-    if (totalImages === 0) {
-      setImagesPreloaded(true)
-      setPreloadProgress(100)
-      return
-    }
-
-    const loadPromises = imagesToPreload.map((src) => {
-      return new Promise<void>((resolve) => {
-        const img = new Image()
-        img.crossOrigin = "anonymous"
-        img.onload = () => {
-          loadedCount++
-          setPreloadProgress((loadedCount / totalImages) * 100)
-          resolve()
-        }
-        img.onerror = () => {
-          loadedCount++
-          setPreloadProgress((loadedCount / totalImages) * 100)
-          resolve()
-        }
-        img.src = src
-      })
-    })
-
-    await Promise.all(loadPromises)
-    setImagesPreloaded(true)
-  }
-
   useEffect(() => {
     const initializePage = async () => {
-      await loadSiteConfig()
+      loadSiteConfig()
 
       const unsubscribe = onAuthStateChanged(auth, async (user) => {
         if (user) {
@@ -122,7 +80,6 @@ export default function LoginPage() {
               const userData = snapshot.val()
 
               if (userData.active === false) {
-                setPageLoading(false)
                 return
               }
 
@@ -138,7 +95,6 @@ export default function LoginPage() {
             console.error("Error checking user role:", error)
           }
         }
-        setPageLoading(false)
       })
 
       return unsubscribe
@@ -146,10 +102,6 @@ export default function LoginPage() {
 
     initializePage()
   }, [router])
-
-  useEffect(() => {
-    preloadImages()
-  }, [siteConfig])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -240,58 +192,6 @@ export default function LoginPage() {
     } finally {
       setInstallLoading(false)
     }
-  }
-
-  if (pageLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-        <div className="text-center space-y-4">
-          <div className="relative">
-            <div className="animate-spin rounded-full h-16 w-16 border-4 border-purple-200 border-t-purple-500 mx-auto"></div>
-            <div className="absolute inset-0 rounded-full bg-purple-500/20 animate-pulse"></div>
-          </div>
-          <div className="space-y-2">
-            <p className="text-white font-medium">Ачааллаж байна...</p>
-            <div className="flex space-x-1 justify-center">
-              <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce"></div>
-              <div
-                className="w-2 h-2 bg-purple-400 rounded-full animate-bounce"
-                style={{ animationDelay: "0.1s" }}
-              ></div>
-              <div
-                className="w-2 h-2 bg-purple-400 rounded-full animate-bounce"
-                style={{ animationDelay: "0.2s" }}
-              ></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  if (!imagesPreloaded) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-        <div className="text-center space-y-6 max-w-sm mx-4">
-          <div className="relative">
-            <div className="animate-spin rounded-full h-16 w-16 border-4 border-purple-200 border-t-purple-500 mx-auto"></div>
-            <Sparkles className="absolute inset-0 m-auto w-6 h-6 text-purple-300 animate-pulse" />
-          </div>
-          <div className="space-y-4">
-            <p className="text-white font-medium text-lg">Зураг ачааллаж байна...</p>
-            <div className="w-full bg-slate-700 rounded-full h-3 overflow-hidden">
-              <div
-                className="bg-gradient-to-r from-purple-500 to-pink-500 h-full rounded-full transition-all duration-500 ease-out relative"
-                style={{ width: `${preloadProgress}%` }}
-              >
-                <div className="absolute inset-0 bg-white/30 animate-pulse rounded-full"></div>
-              </div>
-            </div>
-            <p className="text-purple-300 font-semibold text-xl">{Math.round(preloadProgress)}%</p>
-          </div>
-        </div>
-      </div>
-    )
   }
 
   const backgroundImage = siteConfig.siteBackground || "/images/background.webp"
@@ -424,7 +324,7 @@ export default function LoginPage() {
             </form>
 
             {/* Install button below login button */}
-            {canInstall && !isInstalled && (
+            {!isInstalled && (
               <div className="pt-2">
                 <Button
                   onClick={handleInstall}
@@ -440,11 +340,16 @@ export default function LoginPage() {
                   ) : (
                     <div className="flex items-center space-x-2">
                       <Smartphone className="w-5 h-5" />
-                      <span>Апп суулгах</span>
+                      <span>{canInstall ? "Апп суулгах" : "Апп суулгах (Browser menu)"}</span>
                       <Download className="w-4 h-4" />
                     </div>
                   )}
                 </Button>
+                {!canInstall && (
+                  <p className="text-white/60 text-xs text-center mt-2">
+                    Browser-ийн menu-гээс "Add to Home Screen" сонгоно уу
+                  </p>
+                )}
               </div>
             )}
 
