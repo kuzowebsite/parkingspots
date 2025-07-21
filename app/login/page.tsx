@@ -228,9 +228,15 @@ export default function LoginPage() {
       const success = await installApp()
       if (success) {
         console.log("App installed successfully")
+        // Show success message
+        setError("")
+      } else {
+        // If install failed or was cancelled
+        console.log("Installation was cancelled or failed")
       }
     } catch (error) {
       console.error("Installation failed:", error)
+      setError("Суулгахад алдаа гарлаа. Дахин оролдоно уу.")
     } finally {
       setInstallLoading(false)
     }
@@ -418,7 +424,7 @@ export default function LoginPage() {
             </form>
 
             {/* Install button below login button */}
-            {(canInstall || !isInstalled) && (
+            {canInstall && !isInstalled && (
               <div className="pt-2">
                 <Button
                   onClick={handleInstall}
@@ -434,7 +440,7 @@ export default function LoginPage() {
                   ) : (
                     <div className="flex items-center space-x-2">
                       <Smartphone className="w-5 h-5" />
-                      <span>Суулгах</span>
+                      <span>Апп суулгах</span>
                       <Download className="w-4 h-4" />
                     </div>
                   )}
