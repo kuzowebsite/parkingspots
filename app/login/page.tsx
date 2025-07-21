@@ -25,7 +25,7 @@ export default function LoginPage() {
   const [installLoading, setInstallLoading] = useState(false)
 
   // PWA install hook
-  const { canInstall, installApp, isInstalled } = usePWAInstall()
+  const { canInstall, installApp, isInstalled, isIOS, isAndroid } = usePWAInstall()
 
   // Site configuration states
   const [siteConfig, setSiteConfig] = useState({
@@ -180,17 +180,24 @@ export default function LoginPage() {
       const success = await installApp()
       if (success) {
         console.log("App installed successfully")
-        // Show success message
         setError("")
       } else {
-        // If install failed or was cancelled
-        console.log("Installation was cancelled or failed")
+        console.log("Installation instructions shown")
       }
     } catch (error) {
       console.error("Installation failed:", error)
-      setError("Суулгахад алдаа гарлаа. Дахин оролдоно уу.")
     } finally {
       setInstallLoading(false)
+    }
+  }
+
+  const getInstallButtonText = () => {
+    if (isIOS) {
+      return "Safari дээр суулгах"
+    } else if (isAndroid) {
+      return "Android дээр суулгах"
+    } else {
+      return "Апп суулгах"
     }
   }
 
@@ -199,7 +206,7 @@ export default function LoginPage() {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center bg-cover bg-center bg-no-repeat relative px-4 py-8"
+      className="min-h-screen w-full flex items-center justify-center bg-cover bg-center bg-no-repeat relative"
       style={{
         backgroundImage: `url("${backgroundImage}")`,
       }}
@@ -216,12 +223,12 @@ export default function LoginPage() {
         ></div>
       </div>
 
-      {/* Login form with enhanced design */}
-      <div className="relative z-10 w-full max-w-md">
-        <Card className="backdrop-blur-xl bg-white/10 shadow-2xl border border-white/20 overflow-hidden">
+      {/* Login form with enhanced design - Full width */}
+      <div className="relative z-10 w-full h-full flex items-center justify-center p-0">
+        <Card className="w-full h-full min-h-screen backdrop-blur-xl bg-white/10 shadow-2xl border-0 rounded-none overflow-hidden flex flex-col justify-center">
           {/* Card header with gradient background */}
           <div className="bg-gradient-to-r from-purple-600/20 to-blue-600/20 backdrop-blur-sm">
-            <CardHeader className="text-center space-y-6 pb-8">
+            <CardHeader className="text-center space-y-6 pb-8 px-6 sm:px-8">
               <div className="flex justify-center">
                 <div className="relative">
                   <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-r from-purple-500/20 to-blue-500/20 backdrop-blur-sm border border-white/30 flex items-center justify-center">
@@ -252,7 +259,7 @@ export default function LoginPage() {
             </CardHeader>
           </div>
 
-          <CardContent className="space-y-6 p-6 sm:p-8">
+          <CardContent className="space-y-6 p-6 sm:p-8 flex-1 flex flex-col justify-center max-w-md mx-auto w-full">
             <form onSubmit={handleLogin} className="space-y-5">
               <div className="space-y-3">
                 <Label htmlFor="email" className="text-white font-medium text-sm">
@@ -324,7 +331,7 @@ export default function LoginPage() {
             </form>
 
             {/* Install button below login button */}
-            {!isInstalled && (
+            {canInstall && (
               <div className="pt-2">
                 <Button
                   onClick={handleInstall}
@@ -335,21 +342,16 @@ export default function LoginPage() {
                   {installLoading ? (
                     <div className="flex items-center space-x-3">
                       <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
-                      <span>Суулгаж байна...</span>
+                      <span>Заавар харуулж байна...</span>
                     </div>
                   ) : (
                     <div className="flex items-center space-x-2">
                       <Smartphone className="w-5 h-5" />
-                      <span>{canInstall ? "Апп суулгах" : "Апп суулгах (Browser menu)"}</span>
+                      <span>{getInstallButtonText()}</span>
                       <Download className="w-4 h-4" />
                     </div>
                   )}
                 </Button>
-                {!canInstall && (
-                  <p className="text-white/60 text-xs text-center mt-2">
-                    Browser-ийн menu-гээс "Add to Home Screen" сонгоно уу
-                  </p>
-                )}
               </div>
             )}
 
@@ -373,17 +375,6 @@ export default function LoginPage() {
             </div>
           </CardContent>
         </Card>
-
-        {/* Floating elements around the card */}
-        <div className="absolute -top-4 -left-4 w-8 h-8 bg-purple-500/20 rounded-full blur-sm animate-pulse"></div>
-        <div
-          className="absolute -bottom-4 -right-4 w-6 h-6 bg-blue-500/20 rounded-full blur-sm animate-pulse"
-          style={{ animationDelay: "1s" }}
-        ></div>
-        <div
-          className="absolute top-1/2 -right-8 w-4 h-4 bg-pink-500/20 rounded-full blur-sm animate-pulse"
-          style={{ animationDelay: "2s" }}
-        ></div>
       </div>
     </div>
   )
