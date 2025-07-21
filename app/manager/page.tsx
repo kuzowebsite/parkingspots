@@ -27,12 +27,11 @@ import {
   PowerOff,
   Settings,
   UserIcon,
+  Globe,
   LogOut,
   Eye,
   Calendar,
   Download,
-  ChevronLeft,
-  ChevronRight,
   TrendingUp,
   Users,
   Car,
@@ -41,9 +40,11 @@ import {
   ChevronDown,
 } from "lucide-react"
 import * as XLSX from "xlsx"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible" // Added Collapsible imports
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover" // Added Popover imports
+import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command" // Added Command imports
 
-export default function ManagerPage() {
+export default function DirectorPage() {
   const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
@@ -60,7 +61,7 @@ export default function ManagerPage() {
   const [reportFilterYear, setReportFilterYear] = useState("")
   const [reportFilterMonth, setReportFilterMonth] = useState("")
   const [reportFilterCarNumber, setReportFilterCarNumber] = useState("")
-  const [reportFilterMechanic, setReportFilterMechanic] = useState("")
+  const [reportFilterMechanic, setReportFilterMechanic] = useState<string[]>([]) // Changed to string[]
   const [reportFilterPaymentStatus, setReportFilterPaymentStatus] = useState("") // New filter
   const [reportLoading, setReportLoading] = useState(false)
   const [totalCashAmount, setTotalCashAmount] = useState(0)
@@ -121,13 +122,14 @@ export default function ManagerPage() {
     createdAt: "",
   })
   const [registrationLoading, setRegistrationLoading] = useState(false)
+  const [isNamePhoneAutoFilled, setIsNamePhoneAutoFilled] = useState(false)
   // Add "director" to the selectedRole type
-  const [selectedRole, setSelectedRole] = useState<"manager" | "driver" | "employee">("employee")
+  const [selectedRole, setSelectedRole] = useState<"manager" | "driver" | "employee" | "director">("employee")
   // Add this after the existing states, around line 100
   const [availableEmployees, setAvailableEmployees] = useState<any[]>([])
   // Edit driver states
-  const [editingDriver, setEditingDriver] = useState<UserProfile | null>(null)
-  const [editDriverData, setEditDriverData] = useState({
+  const [editingUser, setEditingUser] = useState<UserProfile | null>(null)
+  const [editUserData, setEditUserData] = useState({
     name: "",
     phone: "",
     email: "",
@@ -144,6 +146,14 @@ export default function ManagerPage() {
     profileImage: "",
   })
   const [profileLoading, setLoadingProfile] = useState(false)
+  // Site configuration states
+  const [showSiteDialog, setShowSiteDialog] = useState(false)
+  const [siteConfig, setSiteConfig] = useState({
+    siteName: "",
+    siteLogo: "",
+    siteBackground: "",
+  })
+  const [siteLoading, setSiteLoading] = useState(false)
   // Profile image and password states
   const [showPassword, setShowConfirmPassword] = useState(false)
   const [showConfirmPassword, setShowPassword] = useState(false)
@@ -152,6 +162,23 @@ export default function ManagerPage() {
     newPassword: "",
     confirmPassword: "",
   })
+  // Pricing states
+  const [showPricingDialog, setShowPricingDialog] = useState(false)
+  const [pricingConfig, setPricingConfig] = useState({
+    leather: {
+      firstHour: 0,
+      subsequentHour: 0,
+    },
+    spare: {
+      firstHour: 0,
+      subsequentHour: 0,
+    },
+    general: {
+      firstHour: 0,
+      subsequentHour: 0,
+    },
+  })
+  const [pricingLoading, setPricingLoading] = useState(false)
   // Payment status dialog states
   const [showPaymentDialog, setShowPaymentDialog] = useState(false)
   const [selectedRecord, setSelectedRecord] = useState<any>(null)
@@ -172,11 +199,15 @@ export default function ManagerPage() {
     entryTime: "",
     exitTime: "",
     parkingDuration: "",
-    notes: "",
+    amount: 0, // Added amount field
+    images: [] as string[], // Added images field
   })
   const [editRecordLoading, setEditRecordLoading] = useState(false)
+  const [deleteRecordLoading, setDeleteRecordLoading] = useState(false)
   // State for filter collapsible
   const [isFilterOpen, setIsFilterOpen] = useState(true)
+  // Logout loading state
+  const [logoutLoading, setLogoutLoading] = useState(false)
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -209,6 +240,39 @@ export default function ManagerPage() {
         setLoading(false)
       }
     })
+    // Load site configuration
+    const siteRef = ref(database, "siteConfig")
+    onValue(siteRef, (snapshot) => {
+      const data = snapshot.val()
+      if (data) {
+        setSiteConfig({
+          siteName: data.siteName || "",
+          siteLogo: data.siteLogo || "",
+          siteBackground: data.siteBackground || "",
+        })
+      }
+    })
+    // Load pricing configuration
+    const pricingRef = ref(database, "pricingConfig")
+    onValue(pricingRef, (snapshot) => {
+      const data = snapshot.val()
+      if (data) {
+        setPricingConfig({
+          leather: {
+            firstHour: data.leather?.firstHour || 0,
+            subsequentHour: data.leather?.subsequentHour || 0,
+          },
+          spare: {
+            firstHour: data.spare?.firstHour || 0,
+            subsequentHour: data.spare?.subsequentHour || 0,
+          },
+          general: {
+            firstHour: data.general?.firstHour || 0,
+            subsequentHour: data.general?.subsequentHour || 0,
+          },
+        })
+      }
+    })
     // Load report records after profile is loaded
     setTimeout(() => {
       loadReportRecords()
@@ -216,10 +280,10 @@ export default function ManagerPage() {
     // Add this line after loadReportRecords() call:
     loadEmployees()
     loadManagers()
-    loadDirectors() // Add this line to load directors
+    loadDirectors()
     loadDrivers()
     loadDashboardData()
-    loadLoginEmployees() // Add this line
+    loadLoginEmployees()
     // In the loadUserProfile function, after the existing load calls around line 200, add:
     loadAvailableEmployees()
   }
@@ -540,8 +604,8 @@ export default function ManagerPage() {
 
   // In handleEditDriver function:
   const handleEditDriver = (driver: UserProfile) => {
-    setEditingDriver(driver)
-    setEditDriverData({
+    setEditingUser(driver)
+    setEditUserData({
       name: driver.name,
       phone: driver.phone,
       email: driver.email,
@@ -616,7 +680,6 @@ export default function ManagerPage() {
           id: employeeRef.key,
           updatedAt: new Date().toISOString(),
         }
-        // Save to users node using the same key
         await set(ref(database, `users/${employeeRef.key}`), userData)
       }
       alert("Ажилчин амжилттай нэмэгдлээ")
@@ -637,8 +700,8 @@ export default function ManagerPage() {
 
   // In handleEditEmployee function:
   const handleEditEmployee = (employee: UserProfile) => {
-    setEditingEmployee(employee) // Corrected: set editingEmployee instead of editingDriver
-    setEditDriverData({
+    setEditingUser(employee)
+    setEditUserData({
       name: employee.name,
       phone: employee.phone,
       email: employee.email,
@@ -648,47 +711,6 @@ export default function ManagerPage() {
   }
 
   // In handleSaveEmployeeEdit function:
-  const handleSaveEmployeeEdit = async () => {
-    console.log("handleSaveEmployeeEdit called")
-    if (!editingEmployee || !editDriverData.name.trim() || !editDriverData.email.trim()) {
-      alert("Нэр болон и-мэйл хаягийг бөглөнө үү")
-      console.error("Validation failed: Missing employee data or required fields.")
-      return
-    }
-    setEditLoading(true)
-    try {
-      // Merge existing employee data with updated fields
-      const updateData: Partial<UserProfile> = {
-        ...editingEmployee, // Start with existing data to preserve fields not in the form
-        name: editDriverData.name.trim(),
-        phone: editDriverData.phone.trim(),
-        email: editDriverData.email.trim(),
-        updatedAt: new Date().toISOString(),
-      }
-
-      // Ensure 'id' is not part of the update payload, as it's the key
-      delete updateData.id
-
-      console.log("Updating user with ID:", editingEmployee.id, "with data:", updateData)
-      // Update both users and employees nodes for employees
-      await update(ref(database, `users/${editingEmployee.id}`), updateData)
-      console.log("User node updated successfully.")
-
-      if (editingEmployee.role === "employee") {
-        console.log("Updating employee node with ID:", editingEmployee.id, "with data:", updateData)
-        await update(ref(database, `employees/${editingEmployee.id}`), updateData)
-        console.log("Employee node updated successfully.")
-      }
-
-      alert("Ажилчны мэдээлэл амжилттай шинэчлэгдлээ")
-      setShowEditDialog(false)
-      setEditingEmployee(null)
-    } catch (error) {
-      console.error("Error updating user/employee:", error)
-      alert("Мэдээлэл шинэчлэхэд алдаа гарлаа")
-    }
-    setEditLoading(false)
-  }
 
   // Delete employee
   const handleDeleteEmployee = async (employeeId: string, employeeName: string) => {
@@ -745,8 +767,8 @@ export default function ManagerPage() {
   }
 
   const handleEditManager = (manager: UserProfile) => {
-    setEditingDriver(manager)
-    setEditDriverData({
+    setEditingUser(manager)
+    setEditUserData({
       name: manager.name,
       phone: manager.phone,
       email: manager.email,
@@ -786,8 +808,8 @@ export default function ManagerPage() {
   }
 
   const handleEditDirector = (director: UserProfile) => {
-    setEditingDriver(director)
-    setEditDriverData({
+    setEditingUser(director)
+    setEditUserData({
       name: director.name,
       phone: director.phone,
       email: director.email,
@@ -833,7 +855,16 @@ export default function ManagerPage() {
   }
 
   const calculateParkingFee = (entryTime: string, exitTime: string): number => {
-    if (!entryTime || !exitTime) {
+    if (
+      !entryTime ||
+      !exitTime ||
+      pricingConfig.leather.firstHour === 0 ||
+      pricingConfig.leather.subsequentHour === 0 ||
+      pricingConfig.spare.firstHour === 0 ||
+      pricingConfig.spare.subsequentHour === 0 ||
+      pricingConfig.general.firstHour === 0 ||
+      pricingConfig.general.subsequentHour === 0
+    ) {
       return 0
     }
     try {
@@ -859,7 +890,7 @@ export default function ManagerPage() {
       }
       const diffInMs = exitDate.getTime() - entryDate.getTime()
       const diffInMinutes = Math.ceil(diffInMs / (1000 * 60)) // Round up to next minute
-      return Math.max(0, diffInMinutes * 0) // Assuming a default rate if pricing config is removed
+      return Math.max(0, diffInMinutes * pricingConfig.general.firstHour)
     } catch (error) {
       console.error("Error calculating parking fee:", error)
       return 0
@@ -1187,7 +1218,7 @@ export default function ManagerPage() {
           "Орсон цаг": "",
           "Гарсан цаг": "",
           "Зогссон хугацаа": "Нийт дүн:",
-          "Төлбөр (₮)": exportCashSum + exportCardSum + exportTransferSum,
+          "Tөлбөр (₮)": exportCashSum + exportCardSum + exportTransferSum,
           "Бэлэн мөнгө (₮)": "",
           "Карт (₮)": "",
           "Харилцах (₮)": "",
@@ -1264,10 +1295,11 @@ export default function ManagerPage() {
         record.carNumber.toLowerCase().includes(reportFilterCarNumber.toLowerCase()),
       )
     }
-    if (reportFilterMechanic) {
+    if (reportFilterMechanic.length > 0) {
+      // Check if any mechanics are selected
       filtered = filtered.filter((record) => {
         const mechanicName = record.mechanicName || record.driverName || ""
-        return mechanicName.toLowerCase().includes(reportFilterMechanic.toLowerCase())
+        return reportFilterMechanic.includes(mechanicName) // Check if mechanicName is in the selected array
       })
     }
     // Add payment status filter
@@ -1321,6 +1353,13 @@ export default function ManagerPage() {
       // Firebase Auth дээр хэрэглэгч үүсгэх
       const userCredential = await createUserWithEmailAndPassword(auth, newDriver.email, newDriver.password)
       const newUserId = userCredential.user.uid
+
+      // Immediately sign out the newly created user to prevent automatic login
+      // NOTE: This will also log out the current director. The director will need to re-login.
+      // For a seamless experience where the director remains logged in, a server-side solution
+      // using Firebase Admin SDK would be required to create users without signing them in.
+      await signOut(auth)
+
       // Database дээр хэрэглэгчийн мэдээлэл хадгалах
       const userData: UserProfile = {
         name: newDriver.name.trim(),
@@ -1334,7 +1373,7 @@ export default function ManagerPage() {
       await set(ref(database, `users/${newUserId}`), userData)
       // Update the alert message to include "director"
       alert(
-        `${selectedRole === "manager" ? "Менежер" : selectedRole === "driver" ? "Бүртгэл" : selectedRole === "employee" ? "Засварчин" : "Ажилчин"} амжилттай бүртгэгдлээ`,
+        `${selectedRole === "manager" ? "Менежер" : selectedRole === "driver" ? "Бүртгэл" : selectedRole === "director" ? "Захирал" : "Засварчин"} амжилттай бүртгэгдлээ. Та дахин нэвтэрнэ үү.`,
       )
       // Form цэвэрлэх
       setNewDriver({
@@ -1345,6 +1384,8 @@ export default function ManagerPage() {
         role: "driver",
         createdAt: "",
       })
+      setIsNamePhoneAutoFilled(false) // Reset auto-fill status
+      router.push("/login") // Redirect to login page after successful registration and logout
     } catch (error: any) {
       console.error("Driver registration error:", error)
       if (error.code === "auth/email-already-in-use") {
@@ -1367,46 +1408,55 @@ export default function ManagerPage() {
         name: selectedEmployee.name,
         phone: selectedEmployee.phone || "",
       })
+      setIsNamePhoneAutoFilled(true)
+    } else {
+      // If no employee is selected (e.g., "Сонгоно уу" is chosen), clear fields and enable editing
+      setNewDriver((prev) => ({ ...prev, name: "", phone: "" }))
+      setIsNamePhoneAutoFilled(false)
     }
   }
 
   // In handleSaveDriverEdit function:
-  const handleSaveDriverEdit = async () => {
-    if (!editingDriver || !editDriverData.name.trim() || !editDriverData.email.trim()) {
+  const handleSaveUserEdit = async () => {
+    if (!editingUser || !editUserData.name.trim() || !editUserData.email.trim()) {
       alert("Нэр болон и-мэйл хаягийг бөглөнө үү")
       return
     }
     setEditLoading(true)
     try {
-      // Update user data in database
       const updateData: any = {
-        name: editDriverData.name.trim(),
-        phone: editDriverData.phone.trim(),
-        email: editDriverData.email.trim(),
+        name: editUserData.name.trim(),
+        phone: editUserData.phone.trim(),
+        email: editUserData.email.trim(),
         updatedAt: new Date().toISOString(),
       }
-      await update(ref(database, `users/${editingDriver.id}`), updateData)
-      // Note: Password update requires re-authentication in a production environment.
-      // This simplified example only updates profile data (name, phone, email).
+      // Update the user's main profile in the 'users' node
+      await update(ref(database, `users/${editingUser.id}`), updateData)
+      
+      // If the user is an employee, also update their record in the 'employees' node
+      if (editingUser.role === "employee") {
+        await update(ref(database, `employees/${editingUser.id}`), updateData)
+      }
+
       const userType =
-        editingDriver.role === "manager"
+        editingUser.role === "manager"
           ? "Менежерийн"
-          : editingDriver.role === "driver"
+          : editingUser.role === "driver"
             ? "Бүртгэлийн"
-            : editingDriver.role === "director"
+            : editingUser.role === "director"
               ? "Захиралын"
               : "Ажилчны"
       alert(`${userType} мэдээлэл амжилттай шинэчлэгдлээ`)
       setShowEditDialog(false)
-      setEditingDriver(null)
+      setEditingUser(null)
     } catch (error) {
       console.error("Error updating user:", error)
       const userType =
-        editingDriver?.role === "manager"
+        editingUser?.role === "manager"
           ? "менежерийн"
-          : editingDriver?.role === "driver"
+          : editingUser?.role === "driver"
             ? "бүртгэлийн"
-            : editingDriver?.role === "director"
+            : editingUser?.role === "director"
               ? "захиралын"
               : "ажилчны"
       alert(`${userType} мэдээлэл шинэчлэхэд алдаа гарлаа`)
@@ -1414,7 +1464,7 @@ export default function ManagerPage() {
     setEditLoading(false)
   }
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: "profile") => {
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: "profile" | "logo" | "background") => {
     const file = e.target.files?.[0]
     if (file) {
       // Check file size (5MB max)
@@ -1427,6 +1477,10 @@ export default function ManagerPage() {
         const base64String = event.target?.result as string
         if (type === "profile") {
           setProfileData({ ...profileData, profileImage: base64String })
+        } else if (type === "logo") {
+          setSiteConfig({ ...siteConfig, siteLogo: base64String })
+        } else if (type === "background") {
+          setSiteConfig({ ...siteConfig, siteBackground: base64String })
         }
       }
       reader.readAsDataURL(file)
@@ -1478,6 +1532,55 @@ export default function ManagerPage() {
       alert("Профайл шинэчлэхэд алдаа гарлаа")
     }
     setLoadingProfile(false)
+  }
+
+  const handleSaveSiteConfig = async () => {
+    if (!siteConfig.siteName.trim()) {
+      alert("Сайтын нэрийг оруулна уу")
+      return
+    }
+    setSiteLoading(true)
+    try {
+      await set(ref(database, "siteConfig"), {
+        siteName: siteConfig.siteName.trim(),
+        siteLogo: siteConfig.siteLogo,
+        siteBackground: siteConfig.siteBackground,
+        updatedAt: new Date().toISOString(),
+      })
+      alert("Сайтын тохиргоо амжилттай хадгалагдлаа")
+      setShowSiteDialog(false)
+    } catch (error) {
+      console.error("Error saving site config:", error)
+      alert("Сайтын тохиргоо хадгалахад алдаа гарлаа")
+    }
+    setSiteLoading(false)
+  }
+
+  const handleSavePricingConfig = async () => {
+    if (
+      pricingConfig.leather.firstHour <= 0 ||
+      pricingConfig.leather.subsequentHour <= 0 ||
+      pricingConfig.spare.firstHour <= 0 ||
+      pricingConfig.spare.subsequentHour <= 0 ||
+      pricingConfig.general.firstHour <= 0 ||
+      pricingConfig.general.subsequentHour <= 0
+    ) {
+      alert("Бүх үнийн мэдээллийг 0-ээс их оруулна уу")
+      return
+    }
+    setPricingLoading(true)
+    try {
+      await set(ref(database, "pricingConfig"), {
+        ...pricingConfig,
+        updatedAt: new Date().toISOString(),
+      })
+      alert("Үнийн тохиргоо амжилттай хадгалагдлаа")
+      setShowPricingDialog(false)
+    } catch (error) {
+      console.error("Error saving pricing config:", error)
+      alert("Үнийн тохиргоо хадгалахад алдаа гарлаа")
+    }
+    setPricingLoading(false)
   }
 
   const handlePaymentStatusUpdate = (record: any) => {
@@ -1541,9 +1644,44 @@ export default function ManagerPage() {
       entryTime: record.entryTime || "",
       exitTime: record.exitTime || "",
       parkingDuration: record.parkingDuration || "",
-      notes: "",
+      amount: calculateParkingFeeForReport(record), // Initialize amount
+      images: record.images || [],
     })
     setShowEditRecordDialog(true)
+  }
+
+  const handleImageUploadForRecord = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert("Зургийн хэмжээ 5MB-аас бага байх ёстой")
+        return
+      }
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        const base64String = event.target?.result as string
+        setEditRecordData((prevData) => ({
+          ...prevData,
+          images: [...prevData.images, base64String],
+        }))
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const handleDeleteRecord = async (recordId: string, carNumber: string) => {
+    if (!confirm(`${carNumber} дугаартай бүртгэлийг устгахдаа итгэлтэй байна уу?`)) {
+      return
+    }
+    setDeleteRecordLoading(true)
+    try {
+      await remove(ref(database, `parking_records/${recordId}`))
+      alert("Бүртгэл амжилттай устгагдлаа")
+    } catch (error) {
+      console.error("Error deleting record:", error)
+      alert("Бүртгэл устгахад алдаа гарлаа")
+    }
+    setDeleteRecordLoading(false)
   }
 
   const handleSaveRecordEdit = async () => {
@@ -1562,14 +1700,16 @@ export default function ManagerPage() {
         entryTime: editRecordData.entryTime,
         exitTime: editRecordData.exitTime,
         parkingDuration: editRecordData.parkingDuration,
-        notes: editRecordData.notes.trim(),
+        amount: editRecordData.amount, // Save the edited amount
+        images: editRecordData.images, // Save the updated images array
         updatedAt: new Date().toISOString(),
       }
       await update(ref(database, `parking_records/${editingRecord.id}`), updateData)
       alert("Бүртгэл амжилттай шинэчлэгдлээ")
       setShowEditRecordDialog(false)
       setEditingRecord(null)
-    } catch (error) {
+    } catch (error: any) {
+      // Added type for error
       console.error("Error updating record:", error)
       alert("Бүртгэл шинэчлэхэд алдаа гарлаа")
     }
@@ -1578,14 +1718,24 @@ export default function ManagerPage() {
 
   const handleLogout = async () => {
     if (confirm("Системээс гарахдаа итгэлтэй байна уу?")) {
+      setLogoutLoading(true) // Set loading state
       try {
         await signOut(auth)
         alert("Амжилттай гарлаа")
         router.push("/login") // Redirect to login page
       } catch (error) {
         alert("Гарахад алдаа гарлаа")
+      } finally {
+        setLogoutLoading(false) // Reset loading state
       }
     }
+  }
+
+  const handleDeleteRecordImage = (indexToDelete: number) => {
+    setEditRecordData((prevData) => ({
+      ...prevData,
+      images: prevData.images.filter((_, i) => i !== indexToDelete),
+    }))
   }
 
   if (loading) {
@@ -1656,9 +1806,30 @@ export default function ManagerPage() {
                     <UserIcon className="w-4 h-4 mr-2" />
                     Профайл засах
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleLogout} className="text-red-500 hover:bg-gray-800">
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Гарах
+                  <DropdownMenuItem onClick={() => setShowSiteDialog(true)} className="hover:bg-gray-800">
+                    <Globe className="w-4 h-4 mr-2" />
+                    Сайтын тохиргоо
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setShowPricingDialog(true)} className="hover:bg-gray-800">
+                    <Settings className="w-4 h-4 mr-2" />
+                    Үнийн тохиргоо
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={handleLogout}
+                    className="text-red-500 hover:bg-gray-800"
+                    disabled={logoutLoading}
+                  >
+                    {logoutLoading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-500 mr-2"></div>
+                        Гарч байна...
+                      </>
+                    ) : (
+                      <>
+                        <LogOut className="w-4 h-4 mr-2" />
+                        Гарах
+                      </>
+                    )}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -1951,7 +2122,7 @@ export default function ManagerPage() {
 
             {/* Employee Management Tabs */}
             <Tabs defaultValue="employees" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-3 bg-gray-900 border border-gray-700">
+              <TabsList className="grid w-full grid-cols-4 bg-gray-900 border border-gray-700">
                 <TabsTrigger
                   value="employees"
                   className="text-gray-300 data-[state=active]:bg-gray-700 data-[state=active]:text-white"
@@ -1964,7 +2135,12 @@ export default function ManagerPage() {
                 >
                   Менежерүүд ({managers.length})
                 </TabsTrigger>
-                {/* Removed Directors TabTrigger */}
+                <TabsTrigger
+                  value="directors"
+                  className="text-gray-300 data-[state=active]:bg-gray-700 data-[state=active]:text-white"
+                >
+                  Захирлууд ({directors.length})
+                </TabsTrigger>
                 <TabsTrigger
                   value="drivers"
                   className="text-gray-300 data-[state=active]:bg-gray-700 data-[state=active]:text-white"
@@ -2153,6 +2329,96 @@ export default function ManagerPage() {
                 </Card>
               </TabsContent>
 
+              {/* Directors List */}
+              <TabsContent value="directors">
+                <Card className="bg-gray-900 text-white border-gray-700">
+                  <CardHeader>
+                    <CardTitle className="text-white">Захирлуудын жагсаалт</CardTitle>
+                    <CardDescription className="text-gray-400">Бүх захирлуудын мэдээлэл</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {directors.length === 0 ? (
+                      <p className="text-center text-gray-500 py-8">Захирал олдсонгүй</p>
+                    ) : (
+                      <div className="space-y-4">
+                        {directors.map((director) => (
+                          <div
+                            key={director.id}
+                            className="flex items-center justify-between p-4 border border-gray-700 rounded-lg"
+                          >
+                            <div className="flex items-center space-x-4">
+                              <Avatar className="h-12 w-12">
+                                <AvatarImage src={director.profileImage || "/placeholder.svg"} />
+                                <AvatarFallback>
+                                  <Shield className="h-6 w-6" />
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <h3 className="font-semibold text-white">{director.name}</h3>
+                                <p className="text-sm text-gray-400">Захирал</p>
+                                <p className="text-sm text-gray-500">{director.phone}</p>
+                                <p className="text-sm text-gray-500">{director.email}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Badge
+                                variant={director.active !== false ? "default" : "secondary"}
+                                className={
+                                  director.active !== false ? "bg-green-700 text-white" : "bg-gray-700 text-gray-300"
+                                }
+                              >
+                                {director.active !== false ? "Идэвхтэй" : "Идэвхгүй"}
+                              </Badge>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="sm" className="text-gray-300 hover:bg-gray-800">
+                                    <Settings className="w-4 h-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="bg-gray-900 text-white border-gray-700">
+                                  <DropdownMenuItem
+                                    onClick={() => handleEditDirector(director)}
+                                    className="hover:bg-gray-800"
+                                  >
+                                    <Edit className="w-4 h-4 mr-2" />
+                                    Засах
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      handleToggleDirectorStatus(director.id!, director.active !== false, director.name)
+                                    }
+                                    className="hover:bg-gray-800"
+                                  >
+                                    {director.active !== false ? (
+                                      <>
+                                        <PowerOff className="w-4 h-4 mr-2" />
+                                        Идэвхгүй болгох
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Power className="w-4 h-4 mr-2" />
+                                        Идэвхжүүлэх
+                                      </>
+                                    )}
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => handleDeleteDirector(director.id!, director.name)}
+                                    className="text-red-500 hover:bg-gray-800"
+                                  >
+                                    <Trash2 className="w-4 h-4 mr-2" />
+                                    Устгах
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
               {/* Drivers List */}
               <TabsContent value="drivers">
                 <Card className="bg-gray-900 text-white border-gray-700">
@@ -2267,21 +2533,25 @@ export default function ManagerPage() {
                         id="role"
                         value={selectedRole}
                         onChange={(e) => {
-                          setSelectedRole(e.target.value as "manager" | "driver" | "employee")
+                          setSelectedRole(e.target.value as "manager" | "driver" | "employee" | "director")
                           // Reset name and phone when role changes
                           setNewDriver((prev) => ({ ...prev, name: "", phone: "" }))
+                          setIsNamePhoneAutoFilled(false)
                         }}
                         className="w-full px-3 py-2 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-800 text-white"
                       >
                         <option value="employee">Засварчин</option>
                         <option value="driver">Жолооч</option>
                         <option value="manager">Менежер</option>
+                        <option value="director">Захирал</option>
                       </select>
                       <div className="mt-2 p-3 bg-gray-800 rounded-md">
                         <p className="text-sm text-gray-400">
                           {selectedRole === "employee" && "Засварчин - Зогсоолын үйл ажиллагаанд оролцох эрхтэй"}
                           {selectedRole === "driver" && "Жолооч - Машин бүртгэх, гаргах эрхтэй"}
                           {selectedRole === "manager" && "Менежер - Бүх системийн эрхтэй, тайлан харах боломжтой"}
+                          {selectedRole === "director" &&
+                            "Захирал - Бүх системийн дээд эрхтэй, бүх мэдээлэл харах боломжтой"}
                         </p>
                       </div>
                     </div>
@@ -2325,6 +2595,7 @@ export default function ManagerPage() {
                         onChange={(e) => setNewDriver({ ...newDriver, name: e.target.value })}
                         placeholder="Бүтэн нэрээ оруулна уу"
                         required
+                        disabled={isNamePhoneAutoFilled} // Disable if auto-filled
                         className="bg-gray-800 text-white border-gray-700"
                       />
                     </div>
@@ -2339,6 +2610,7 @@ export default function ManagerPage() {
                         value={newDriver.phone}
                         onChange={(e) => setNewDriver({ ...newDriver, phone: e.target.value })}
                         placeholder="99112233"
+                        disabled={isNamePhoneAutoFilled} // Disable if auto-filled
                         className="bg-gray-800 text-white border-gray-700"
                       />
                     </div>
@@ -2388,7 +2660,13 @@ export default function ManagerPage() {
                     ) : (
                       <>
                         <UserPlus className="w-4 h-4 mr-2" />
-                        {selectedRole === "manager" ? "Менежер" : selectedRole === "driver" ? "Жолооч" : "Ажилчин"}{" "}
+                        {selectedRole === "manager"
+                          ? "Менежер"
+                          : selectedRole === "driver"
+                            ? "Жолооч"
+                            : selectedRole === "director"
+                              ? "Захирал"
+                              : "Засварчин"}{" "}
                         бүртгэх
                       </>
                     )}
@@ -2492,19 +2770,55 @@ export default function ManagerPage() {
                         <Label htmlFor="filterMechanic" className="text-gray-300">
                           Засварчин
                         </Label>
-                        <select
-                          id="filterMechanic"
-                          value={reportFilterMechanic}
-                          onChange={(e) => setReportFilterMechanic(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-800 text-white"
-                        >
-                          <option value="">Бүх засварчин</option>
-                          {getAvailableMechanicNames().map((name) => (
-                            <option key={name} value={name}>
-                              {name}
-                            </option>
-                          ))}
-                        </select>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              className="w-full justify-between bg-gray-800 text-white border-gray-700 hover:bg-gray-700"
+                            >
+                              {reportFilterMechanic.length > 0
+                                ? `${reportFilterMechanic.length} сонгогдсон`
+                                : "Бүх засварчин"}
+                              <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[200px] p-0 bg-gray-900 text-white border-gray-700">
+                            <Command className="bg-gray-900">
+                              <CommandInput
+                                placeholder="Засварчин хайх..."
+                                className="h-9 bg-gray-800 text-white border-gray-700"
+                              />
+                              <CommandEmpty>Засварчин олдсонгүй.</CommandEmpty>
+                              <CommandGroup>
+                                <CommandList>
+                                  {getAvailableMechanicNames().map((name) => (
+                                    <CommandItem
+                                      key={name}
+                                      onSelect={() => {
+                                        setReportFilterMechanic((prev) =>
+                                          prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name],
+                                        )
+                                      }}
+                                      className="cursor-pointer hover:bg-gray-800"
+                                    >
+                                      <Checkbox
+                                        checked={reportFilterMechanic.includes(name)}
+                                        onCheckedChange={() => {
+                                          setReportFilterMechanic((prev) =>
+                                            prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name],
+                                          )
+                                        }}
+                                        className="mr-2 border-gray-700 data-[state=checked]:bg-blue-600 data-[state=checked]:text-white"
+                                      />
+                                      {name}
+                                    </CommandItem>
+                                  ))}
+                                </CommandList>
+                              </CommandGroup>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
                       </div>
 
                       <div>
@@ -2591,6 +2905,8 @@ export default function ManagerPage() {
                             Төлбөрийн төлөв
                           </th>
                           <th className="border border-gray-700 px-1 py-0.5 text-left text-gray-300 text-xs">Зураг</th>
+                          <th className="border border-gray-700 px-1 py-0.5 text-left text-gray-300 text-xs">Үйлдэл</th>
+                          <th className="border border-gray-700 px-1 py-0.5 text-left text-gray-300 text-xs">Устгах</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -2643,16 +2959,14 @@ export default function ManagerPage() {
                                 >
                                   {record.paymentStatus === "paid" ? "Төлсөн" : "Төлөөгүй"}
                                 </Badge>
-                                {record.paymentStatus !== "paid" && (
-                                  <Button
-                                    size="xs" // Changed to xs for smaller button
-                                    variant="outline"
-                                    onClick={() => handlePaymentStatusUpdate(record)}
-                                    className="bg-gray-800 text-white border-gray-700 hover:bg-gray-700 text-xs"
-                                  >
-                                    Төлбөр
-                                  </Button>
-                                )}
+                                <Button
+                                  size="xs" // Changed to xs for smaller button
+                                  variant="outline"
+                                  onClick={() => handlePaymentStatusUpdate(record)}
+                                  className="bg-gray-800 text-white border-gray-700 hover:bg-gray-700 text-xs"
+                                >
+                                  Төлбөр
+                                </Button>
                               </div>
                             </td>
                             <td className="border border-gray-700 px-1 py-0.5">
@@ -2669,6 +2983,31 @@ export default function ManagerPage() {
                               ) : (
                                 <span className="text-gray-500 text-xs">Байхгүй</span>
                               )}
+                            </td>
+                            <td className="border border-gray-700 px-1 py-0.5">
+                              <Button
+                                size="xs" // Changed to xs for smaller button
+                                variant="outline"
+                                onClick={() => handleEditRecord(record)}
+                                className="bg-gray-800 text-white border-gray-700 hover:bg-gray-700"
+                              >
+                                <Edit className="w-3 h-3" /> {/* Smaller icon */}
+                              </Button>
+                            </td>
+                            <td className="border border-gray-700 px-1 py-0.5">
+                              <Button
+                                size="xs"
+                                variant="destructive"
+                                onClick={() => handleDeleteRecord(record.id, record.carNumber)}
+                                disabled={deleteRecordLoading}
+                                className="bg-red-600 text-white hover:bg-red-700"
+                              >
+                                {deleteRecordLoading ? (
+                                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                                ) : (
+                                  <Trash2 className="w-3 h-3" />
+                                )}
+                              </Button>
                             </td>
                           </tr>
                         ))}
@@ -2790,11 +3129,11 @@ export default function ManagerPage() {
         <DialogContent className="max-w-md bg-gray-900 text-white border-gray-700">
           <DialogHeader>
             <DialogTitle className="text-white">
-              {editingDriver?.role === "manager"
+              {editingUser?.role === "manager"
                 ? "Менежер"
-                : editingDriver?.role === "driver"
+                : editingUser?.role === "driver"
                   ? "Жолооч"
-                  : editingDriver?.role === "director"
+                  : editingUser?.role === "director"
                     ? "Захирал"
                     : "Ажилчин"}{" "}
               засах
@@ -2809,8 +3148,8 @@ export default function ManagerPage() {
               <Input
                 id="editName"
                 type="text"
-                value={editDriverData.name}
-                onChange={(e) => setEditDriverData({ ...editDriverData, name: e.target.value })}
+                value={editUserData.name}
+                onChange={(e) => setEditUserData({ ...editUserData, name: e.target.value })}
                 placeholder="Нэр"
                 className="bg-gray-800 text-white border-gray-700"
               />
@@ -2823,8 +3162,8 @@ export default function ManagerPage() {
               <Input
                 id="editPhone"
                 type="tel"
-                value={editDriverData.phone}
-                onChange={(e) => setEditDriverData({ ...editDriverData, phone: e.target.value })}
+                value={editUserData.phone}
+                onChange={(e) => setEditUserData({ ...editUserData, phone: e.target.value })}
                 placeholder="Утасны дугаар"
                 className="bg-gray-800 text-white border-gray-700"
               />
@@ -2837,8 +3176,8 @@ export default function ManagerPage() {
               <Input
                 id="editEmail"
                 type="email"
-                value={editDriverData.email}
-                onChange={(e) => setEditDriverData({ ...editDriverData, email: e.target.value })}
+                value={editUserData.email}
+                onChange={(e) => setEditUserData({ ...editUserData, email: e.target.value })}
                 placeholder="И-мэйл хаяг"
                 className="bg-gray-800 text-white border-gray-700"
               />
@@ -2853,7 +3192,7 @@ export default function ManagerPage() {
               Цуцлах
             </Button>
             <Button
-              onClick={editingEmployee ? handleSaveEmployeeEdit : handleSaveDriverEdit}
+              onClick={handleSaveUserEdit}
               disabled={editLoading}
               className="bg-blue-600 text-white hover:bg-blue-700"
             >
@@ -2865,7 +3204,7 @@ export default function ManagerPage() {
 
       {/* Profile Dialog */}
       <Dialog open={showProfileDialog} onOpenChange={setShowProfileDialog}>
-        <DialogContent className="max-w-md bg-gray-900 text-white border-gray-700 overflow-y-auto max-h-[90vh]">
+        <DialogContent className="max-w-md bg-gray-900 text-white border-gray-700 max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-white">Профайл засах</DialogTitle>
             <DialogDescription className="text-gray-400">Өөрийн мэдээллийг шинэчлэх</DialogDescription>
@@ -3019,6 +3358,253 @@ export default function ManagerPage() {
               className="bg-blue-600 text-white hover:bg-blue-700"
             >
               {profileLoading ? "Хадгалж байна..." : "Хадгалах"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Site Configuration Dialog */}
+      <Dialog open={showSiteDialog} onOpenChange={setShowSiteDialog}>
+        <DialogContent className="max-w-md bg-gray-900 text-white border-gray-700">
+          <DialogHeader>
+            <DialogTitle className="text-white">Сайтын тохиргоо</DialogTitle>
+            <DialogDescription className="text-gray-400">Сайтын үндсэн мэдээллийг тохируулах</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="siteName" className="text-gray-300">
+                Сайтын нэр
+              </Label>
+              <Input
+                id="siteName"
+                type="text"
+                value={siteConfig.siteName}
+                onChange={(e) => setSiteConfig({ ...siteConfig, siteName: e.target.value })}
+                placeholder="Сайтын нэр"
+                className="bg-gray-800 text-white border-gray-700"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="siteLogo" className="text-gray-300">
+                Сайтын лого
+              </Label>
+              <Input
+                id="siteLogo"
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleImageUpload(e, "logo")}
+                className="bg-gray-800 text-white border-gray-700"
+              />
+              {siteConfig.siteLogo && (
+                <div className="mt-2">
+                  <img
+                    src={siteConfig.siteLogo || "/placeholder.svg"}
+                    alt="Logo Preview"
+                    className="w-20 h-20 object-cover rounded"
+                  />
+                </div>
+              )}
+            </div>
+
+            <div>
+              <Label htmlFor="siteBackground" className="text-gray-300">
+                Арын зураг
+              </Label>
+              <Input
+                id="siteBackground"
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleImageUpload(e, "background")}
+                className="bg-gray-800 text-white border-gray-700"
+              />
+              {siteConfig.siteBackground && (
+                <div className="mt-2">
+                  <img
+                    src={siteConfig.siteBackground || "/placeholder.svg"}
+                    alt="Background Preview"
+                    className="w-full h-20 object-cover rounded"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowSiteDialog(false)}
+              className="bg-gray-800 text-white border-gray-700 hover:bg-gray-700"
+            >
+              Цуцлах
+            </Button>
+            <Button
+              onClick={handleSaveSiteConfig}
+              disabled={siteLoading}
+              className="bg-blue-600 text-white hover:bg-blue-700"
+            >
+              {siteLoading ? "Хадгалж байна..." : "Хадгалах"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Pricing Configuration Dialog */}
+      <Dialog open={showPricingDialog} onOpenChange={setShowPricingDialog}>
+        <DialogContent className="max-w-lg bg-gray-900 text-white border-gray-700">
+          <DialogHeader>
+            <DialogTitle className="text-white">Үнийн тохиргоо</DialogTitle>
+            <DialogDescription className="text-gray-400">Зогсоолын үнийн мэдээллийг тохируулах</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6">
+            {/* Leather Zone */}
+            <div className="space-y-3">
+              <h4 className="font-medium text-lg text-white">Арьсан талбай</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="leatherFirst" className="text-gray-300">
+                    Эхний цаг (₮)
+                  </Label>
+                  <Input
+                    id="leatherFirst"
+                    type="number"
+                    value={pricingConfig.leather.firstHour}
+                    onChange={(e) =>
+                      setPricingConfig({
+                        ...pricingConfig,
+                        leather: { ...pricingConfig.leather, firstHour: Number(e.target.value) },
+                      })
+                    }
+                    placeholder="0"
+                    min="0"
+                    className="bg-gray-800 text-white border-gray-700"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="leatherSubsequent" className="text-gray-300">
+                    Дараагийн цаг (₮)
+                  </Label>
+                  <Input
+                    id="leatherSubsequent"
+                    type="number"
+                    value={pricingConfig.leather.subsequentHour}
+                    onChange={(e) =>
+                      setPricingConfig({
+                        ...pricingConfig,
+                        leather: { ...pricingConfig.leather, subsequentHour: Number(e.target.value) },
+                      })
+                    }
+                    placeholder="0"
+                    min="0"
+                    className="bg-gray-800 text-white border-gray-700"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Spare Zone */}
+            <div className="space-y-3">
+              <h4 className="font-medium text-lg text-white">Сэлбэг талбай</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="spareFirst" className="text-gray-300">
+                    Эхний цаг (₮)
+                  </Label>
+                  <Input
+                    id="spareFirst"
+                    type="number"
+                    value={pricingConfig.spare.firstHour}
+                    onChange={(e) =>
+                      setPricingConfig({
+                        ...pricingConfig,
+                        spare: { ...pricingConfig.spare, firstHour: Number(e.target.value) },
+                      })
+                    }
+                    placeholder="0"
+                    min="0"
+                    className="bg-gray-800 text-white border-gray-700"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="spareSubsequent" className="text-gray-300">
+                    Дараагийн цаг (₮)
+                  </Label>
+                  <Input
+                    id="spareSubsequent"
+                    type="number"
+                    value={pricingConfig.spare.subsequentHour}
+                    onChange={(e) =>
+                      setPricingConfig({
+                        ...pricingConfig,
+                        spare: { ...pricingConfig.spare, subsequentHour: Number(e.target.value) },
+                      })
+                    }
+                    placeholder="0"
+                    min="0"
+                    className="bg-gray-800 text-white border-gray-700"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* General Zone */}
+            <div className="space-y-3">
+              <h4 className="font-medium text-lg text-white">Ерөнхий талбай</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="generalFirst" className="text-gray-300">
+                    Эхний цаг (₮)
+                  </Label>
+                  <Input
+                    id="generalFirst"
+                    type="number"
+                    value={pricingConfig.general.firstHour}
+                    onChange={(e) =>
+                      setPricingConfig({
+                        ...pricingConfig,
+                        general: { ...pricingConfig.general, firstHour: Number(e.target.value) },
+                      })
+                    }
+                    placeholder="0"
+                    min="0"
+                    className="bg-gray-800 text-white border-gray-700"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="generalSubsequent" className="text-gray-300">
+                    Дараагийн цаг (₮)
+                  </Label>
+                  <Input
+                    id="generalSubsequent"
+                    type="number"
+                    value={pricingConfig.general.subsequentHour}
+                    onChange={(e) =>
+                      setPricingConfig({
+                        ...pricingConfig,
+                        general: { ...pricingConfig.general, subsequentHour: Number(e.target.value) },
+                      })
+                    }
+                    placeholder="0"
+                    min="0"
+                    className="bg-gray-800 text-white border-gray-700"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowPricingDialog(false)}
+              className="bg-gray-800 text-white border-gray-700 hover:bg-gray-700"
+            >
+              Цуцлах
+            </Button>
+            <Button
+              onClick={handleSavePricingConfig}
+              disabled={pricingLoading}
+              className="bg-blue-600 text-white hover:bg-blue-700"
+            >
+              {pricingLoading ? "Хадгалж байна..." : "Хадгалах"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -3192,7 +3778,7 @@ export default function ManagerPage() {
 
       {/* Edit Record Dialog */}
       <Dialog open={showEditRecordDialog} onOpenChange={setShowEditRecordDialog}>
-        <DialogContent className="max-w-md bg-gray-900 text-white border-gray-700">
+        <DialogContent className="max-w-md bg-gray-900 text-white border-gray-700 max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-white">Бүртгэл засах</DialogTitle>
             <DialogDescription className="text-gray-400">Бүртгэлийн мэдээллийг шинэчлэх</DialogDescription>
@@ -3216,14 +3802,44 @@ export default function ManagerPage() {
               <Label htmlFor="editMechanicName" className="text-gray-300">
                 Засварчин
               </Label>
-              <Input
-                id="editMechanicName"
-                type="text"
-                value={editRecordData.mechanicName}
-                onChange={(e) => setEditRecordData({ ...editRecordData, mechanicName: e.target.value })}
-                placeholder="Засварчны нэр"
-                className="bg-gray-800 text-white border-gray-700"
-              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    className="w-full justify-between bg-gray-800 text-white border-gray-700 hover:bg-gray-700"
+                  >
+                    {editRecordData.mechanicName
+                      ? availableEmployees.find((emp) => emp.name === editRecordData.mechanicName)?.name
+                      : "Засварчин сонгох"}
+                    <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[200px] p-0 bg-gray-900 text-white border-gray-700">
+                  <Command className="bg-gray-900">
+                    <CommandInput
+                      placeholder="Засварчин хайх..."
+                      className="h-9 bg-gray-800 text-white border-gray-700"
+                    />
+                    <CommandEmpty>Засварчин олдсонгүй.</CommandEmpty>
+                    <CommandGroup>
+                      <CommandList>
+                        {availableEmployees.map((employee) => (
+                          <CommandItem
+                            key={employee.id}
+                            onSelect={() => {
+                              setEditRecordData({ ...editRecordData, mechanicName: employee.name })
+                            }}
+                            className="cursor-pointer hover:bg-gray-800"
+                          >
+                            {employee.name}
+                          </CommandItem>
+                        ))}
+                      </CommandList>
+                    </CommandGroup>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
 
             <div>
@@ -3246,10 +3862,9 @@ export default function ManagerPage() {
               </Label>
               <Input
                 id="editEntryTime"
-                type="text"
-                value={editRecordData.entryTime}
+                type="datetime-local"
+                value={editRecordData.entryTime ? new Date(editRecordData.entryTime).toISOString().slice(0, 16) : ""}
                 onChange={(e) => setEditRecordData({ ...editRecordData, entryTime: e.target.value })}
-                placeholder="2024.01.15, 14:30"
                 className="bg-gray-800 text-white border-gray-700"
               />
             </div>
@@ -3260,40 +3875,73 @@ export default function ManagerPage() {
               </Label>
               <Input
                 id="editExitTime"
-                type="text"
-                value={editRecordData.exitTime}
+                type="datetime-local"
+                value={editRecordData.exitTime ? new Date(editRecordData.exitTime).toISOString().slice(0, 16) : ""}
                 onChange={(e) => setEditRecordData({ ...editRecordData, exitTime: e.target.value })}
-                placeholder="2024.01.15, 16:30"
                 className="bg-gray-800 text-white border-gray-700"
               />
             </div>
 
             <div>
               <Label htmlFor="editParkingDuration" className="text-gray-300">
-                Зогссон хугацаа
+                Зогссон хугацаа (цаг)
               </Label>
               <Input
                 id="editParkingDuration"
                 type="text"
                 value={editRecordData.parkingDuration}
                 onChange={(e) => setEditRecordData({ ...editRecordData, parkingDuration: e.target.value })}
-                placeholder="2 цаг"
+                placeholder="Жишээ: 2.5"
                 className="bg-gray-800 text-white border-gray-700"
               />
             </div>
 
             <div>
-              <Label htmlFor="editNotes" className="text-gray-300">
-                Тэмдэглэл
+              <Label htmlFor="editAmount" className="text-gray-300">
+                Төлбөр (₮)
               </Label>
               <Input
-                id="editNotes"
-                type="text"
-                value={editRecordData.notes}
-                onChange={(e) => setEditRecordData({ ...editRecordData, notes: e.target.value })}
-                placeholder="Нэмэлт тэмдэглэл"
+                id="editAmount"
+                type="number"
+                value={editRecordData.amount}
+                onChange={(e) => setEditRecordData({ ...editRecordData, amount: Number(e.target.value) })}
+                placeholder="0"
+                min="0"
                 className="bg-gray-800 text-white border-gray-700"
               />
+            </div>
+
+            <div>
+              <Label htmlFor="editImages" className="text-gray-300">
+                Зураг
+              </Label>
+              <Input
+                id="editImages"
+                type="file"
+                accept="image/*"
+                onChange={handleImageUploadForRecord}
+                className="bg-gray-800 text-white border-gray-700"
+              />
+              <div className="mt-2 flex flex-wrap gap-2">
+                {editRecordData.images.map((image, index) => (
+                  <div key={index} className="relative">
+                    <img
+                      src={image || "/placeholder.svg"}
+                      alt={`Record Image ${index + 1}`}
+                      className="w-20 h-20 object-cover rounded"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
+                      onClick={() => handleDeleteRecordImage(index)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
           <DialogFooter>
@@ -3315,47 +3963,53 @@ export default function ManagerPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Image Viewer Modal */}
-      {showImageViewer && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-          <div className="relative max-w-4xl max-h-full p-4">
-            <button onClick={closeImageViewer} className="absolute top-4 right-4 text-white hover:text-gray-300 z-10">
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-
-            {currentImages.length > 1 && (
-              <>
-                <button
-                  onClick={prevImage}
-                  className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300 z-10"
-                >
-                  <ChevronLeft className="w-8 h-8" />
-                </button>
-                <button
-                  onClick={nextImage}
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300 z-10"
-                >
-                  <ChevronRight className="w-8 h-8" />
-                </button>
-              </>
-            )}
-
+      {/* Image Viewer Dialog */}
+      <Dialog open={showImageViewer} onOpenChange={setShowImageViewer}>
+        <DialogContent className="max-w-3xl bg-gray-900 text-white border-gray-700 p-0">
+          <DialogHeader className="p-4">
+            <DialogTitle className="text-white">Зураг харах</DialogTitle>
+            <DialogDescription className="text-gray-400">
+              Зураг {currentImageIndex + 1} / {currentImages.length}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="relative flex items-center justify-center bg-black">
             <img
               src={currentImages[currentImageIndex] || "/placeholder.svg"}
               alt={`Image ${currentImageIndex + 1}`}
-              className="max-w-full max-h-full object-contain"
+              className="max-h-[70vh] w-full object-contain"
             />
-
             {currentImages.length > 1 && (
-              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-white">
-                {currentImageIndex + 1} / {currentImages.length}
-              </div>
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 bg-gray-800/50 text-white hover:bg-gray-700/70"
+                  onClick={prevImage}
+                >
+                  <ChevronDown className="h-6 w-6 rotate-90" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-gray-800/50 text-white hover:bg-gray-700/70"
+                  onClick={nextImage}
+                >
+                  <ChevronDown className="h-6 w-6 -rotate-90" />
+                </Button>
+              </>
             )}
           </div>
-        </div>
-      )}
+          <DialogFooter className="p-4">
+            <Button
+              variant="outline"
+              onClick={closeImageViewer}
+              className="bg-gray-800 text-white border-gray-700 hover:bg-gray-700"
+            >
+              Хаах
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
