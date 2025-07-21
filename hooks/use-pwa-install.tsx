@@ -15,8 +15,18 @@ export function usePWAInstall() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [isInstallable, setIsInstallable] = useState(false)
   const [isInstalled, setIsInstalled] = useState(false)
+  const [isIOS, setIsIOS] = useState(false)
+  const [isAndroid, setIsAndroid] = useState(false)
 
   useEffect(() => {
+    // Detect device type
+    const userAgent = navigator.userAgent.toLowerCase()
+    const isIOSDevice = /ipad|iphone|ipod/.test(userAgent)
+    const isAndroidDevice = /android/.test(userAgent)
+
+    setIsIOS(isIOSDevice)
+    setIsAndroid(isAndroidDevice)
+
     // Check if app is already installed
     const checkIfInstalled = () => {
       // Check for standalone mode (PWA is installed)
@@ -58,12 +68,16 @@ export function usePWAInstall() {
       setDeferredPrompt(null)
     }
 
-    // Listen for the beforeinstallprompt event
+    // Listen for the beforeinstallprompt event (mainly for Android Chrome)
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt)
     window.addEventListener("appinstalled", handleAppInstalled)
 
-    // For debugging - check if the event listeners are working
-    console.log("PWA install listeners added")
+    // For iOS and other browsers, we can still show install option
+    if (isIOSDevice || isAndroidDevice || !checkIfInstalled()) {
+      setIsInstallable(true)
+    }
+
+    console.log("PWA install listeners added", { isIOSDevice, isAndroidDevice })
 
     return () => {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt)
@@ -72,46 +86,80 @@ export function usePWAInstall() {
   }, [])
 
   const installApp = async () => {
-    if (!deferredPrompt) {
-      console.log("No deferred prompt available")
+    // For Android Chrome with beforeinstallprompt support
+    if (deferredPrompt) {
+      try {
+        console.log("Showing install prompt")
+        deferredPrompt.prompt()
+        const { outcome } = await deferredPrompt.userChoice
+        console.log("User choice:", outcome)
 
-      // For iOS Safari, show instructions
-      if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
-        alert("iOS дээр суулгахын тулд: Safari-н доод хэсгээс 'Share' товч дарж, 'Add to Home Screen' сонгоно уу.")
+        setDeferredPrompt(null)
+        setIsInstallable(false)
+
+        if (outcome === "accepted") {
+          console.log("User accepted the install prompt")
+          return true
+        } else {
+          console.log("User dismissed the install prompt")
+          return false
+        }
+      } catch (error) {
+        console.error("Installation failed:", error)
         return false
       }
+    }
 
-      // For other browsers that don't support install prompt
-      alert("Таны browser PWA суулгахыг дэмжихгүй байна.")
+    // For iOS Safari
+    if (isIOS) {
+      const isInStandaloneMode = (window.navigator as any).standalone
+      const isInWebAppiOS = window.matchMedia("(display-mode: standalone)").matches
+
+      if (!isInStandaloneMode && !isInWebAppiOS) {
+        // Show iOS install instructions
+        alert(`iOS дээр суулгахын тулд:
+1. Safari browser ашиглана уу
+2. Доод хэсгээс "Share" (Хуваалцах) товч дарна уу
+3. "Add to Home Screen" (Нүүр хуудсанд нэмэх) сонгоно уу
+4. "Add" (Нэмэх) товч дарна уу`)
+        return false
+      }
       return false
     }
 
-    try {
-      console.log("Showing install prompt")
-      deferredPrompt.prompt()
-      const { outcome } = await deferredPrompt.userChoice
-      console.log("User choice:", outcome)
+    // For Android browsers without beforeinstallprompt
+    if (isAndroid) {
+      // Check if it's Chrome
+      const isChrome = /chrome/.test(navigator.userAgent.toLowerCase())
 
-      setDeferredPrompt(null)
-      setIsInstallable(false)
-
-      if (outcome === "accepted") {
-        console.log("User accepted the install prompt")
-        return true
+      if (isChrome) {
+        alert(`Chrome дээр суулгахын тулд:
+1. Баруун дээд буланд байгаа цэс (⋮) дарна уу
+2. "Add to Home screen" эсвэл "Install app" сонгоно уу
+3. "Install" товч дарна уу`)
       } else {
-        console.log("User dismissed the install prompt")
-        return false
+        alert(`Android дээр суулгахын тулд:
+1. Browser-ийн цэс нээнэ үү
+2. "Add to Home screen" сонгоно уу
+3. Нэр оруулаад "Add" дарна уу`)
       }
-    } catch (error) {
-      console.error("Installation failed:", error)
       return false
     }
+
+    // For other browsers
+    alert(`Энэ browser дээр суулгахын тулд:
+1. Browser-ийн цэс нээнэ үү
+2. "Add to Home screen" эсвэл "Install" сонгоно уу
+3. Заавар дагуу суулгана уу`)
+    return false
   }
 
   return {
-    isInstallable,
+    isInstallable: isInstallable && !isInstalled,
     isInstalled,
     installApp,
     canInstall: isInstallable && !isInstalled,
+    isIOS,
+    isAndroid,
   }
 }
