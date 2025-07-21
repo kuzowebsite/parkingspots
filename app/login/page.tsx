@@ -25,7 +25,7 @@ export default function LoginPage() {
   const [installLoading, setInstallLoading] = useState(false)
 
   // PWA install hook
-  const { canInstall, installApp, isInstalled, isIOS, isAndroid } = usePWAInstall()
+  const { canInstall, installApp, isInstalled, isIOS, isAndroid, isChrome } = usePWAInstall()
 
   // Site configuration states
   const [siteConfig, setSiteConfig] = useState({
@@ -86,6 +86,9 @@ export default function LoginPage() {
               if (userData.role === "manager") {
                 router.push("/manager")
                 return
+              } else if (userData.role === "director") {
+                router.push("/director")
+                return
               } else if (userData.role === "employee" || userData.role === "driver") {
                 router.push("/")
                 return
@@ -129,7 +132,7 @@ export default function LoginPage() {
           case "manager":
             router.push("/manager")
             break
-          case "director": // Add this new case
+          case "director":
             router.push("/director")
             break
           case "employee":
@@ -177,12 +180,13 @@ export default function LoginPage() {
   const handleInstall = async () => {
     setInstallLoading(true)
     try {
+      console.log("Install button clicked")
       const success = await installApp()
       if (success) {
         console.log("App installed successfully")
         setError("")
       } else {
-        console.log("Installation instructions shown")
+        console.log("Installation instructions shown or cancelled")
       }
     } catch (error) {
       console.error("Installation failed:", error)
@@ -192,10 +196,12 @@ export default function LoginPage() {
   }
 
   const getInstallButtonText = () => {
-    if (isIOS) {
-      return "Safari дээр суулгах"
+    if (isAndroid && isChrome) {
+      return "Chrome дээр суулгах"
     } else if (isAndroid) {
       return "Android дээр суулгах"
+    } else if (isIOS) {
+      return "Safari дээр суулгах"
     } else {
       return "Апп суулгах"
     }
@@ -342,7 +348,7 @@ export default function LoginPage() {
                   {installLoading ? (
                     <div className="flex items-center space-x-3">
                       <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
-                      <span>Заавар харуулж байна...</span>
+                      <span>Суулгаж байна...</span>
                     </div>
                   ) : (
                     <div className="flex items-center space-x-2">
