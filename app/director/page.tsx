@@ -38,6 +38,7 @@ import {
   BarChart3,
   EyeOff,
   ChevronDown,
+  X,
 } from "lucide-react"
 import * as XLSX from "xlsx"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
