@@ -1368,13 +1368,13 @@ export default function ParkingSystem() {
                             Бүс сонгоно уу
                           </option>
                           <option value="leather" className="bg-gray-800 text-white">
-                            Арьс бүс
+                            Тен
                           </option>
                           <option value="spare" className="bg-gray-800 text-white">
-                            Сапари бүс
+                            Сафари
                           </option>
                           <option value="general" className="bg-gray-800 text-white">
-                            Талбай бүс
+                            Талбай
                           </option>
                         </select>
                       </div>
