@@ -2146,7 +2146,7 @@ export default function DirectorPage() {
                   value="drivers"
                   className="text-gray-300 data-[state=active]:bg-gray-700 data-[state=active]:text-white"
                 >
-                  Жолооч ({drivers.length})
+                  Бүртгэл ({drivers.length})
                 </TabsTrigger>
               </TabsList>
 
@@ -2424,12 +2424,12 @@ export default function DirectorPage() {
               <TabsContent value="drivers">
                 <Card className="bg-gray-900 text-white border-gray-700">
                   <CardHeader>
-                    <CardTitle className="text-white">Жолоочдын жагсаалт</CardTitle>
-                    <CardDescription className="text-gray-400">Бүх жолоочдын мэдээлэл</CardDescription>
+                    <CardTitle className="text-white">Бүртгэгчийн жагсаалт</CardTitle>
+                    <CardDescription className="text-gray-400">Бүх Бүртгэгчийн мэдээлэл</CardDescription>
                   </CardHeader>
                   <CardContent>
                     {drivers.length === 0 ? (
-                      <p className="text-center text-gray-500 py-8">Жолооч олдсонгүй</p>
+                      <p className="text-center text-gray-500 py-8">Бүртгэгч олдсонгүй</p>
                     ) : (
                       <div className="space-y-4">
                         {drivers.map((driver) => (
@@ -2446,7 +2446,7 @@ export default function DirectorPage() {
                               </Avatar>
                               <div>
                                 <h3 className="font-semibold text-white">{driver.name}</h3>
-                                <p className="text-sm text-gray-400">Жолооч</p>
+                                <p className="text-sm text-gray-400">Бүртгэгч</p>
                                 <p className="text-sm text-gray-500">{driver.phone}</p>
                                 <p className="text-sm text-gray-500">{driver.email}</p>
                               </div>
@@ -2542,14 +2542,14 @@ export default function DirectorPage() {
                         className="w-full px-3 py-2 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-800 text-white"
                       >
                         <option value="employee">Засварчин</option>
-                        <option value="driver">Жолооч</option>
+                        <option value="driver">Бүртгэгч</option>
                         <option value="manager">Менежер</option>
                         <option value="director">Захирал</option>
                       </select>
                       <div className="mt-2 p-3 bg-gray-800 rounded-md">
                         <p className="text-sm text-gray-400">
                           {selectedRole === "employee" && "Засварчин - Зогсоолын үйл ажиллагаанд оролцох эрхтэй"}
-                          {selectedRole === "driver" && "Жолооч - Машин бүртгэх, гаргах эрхтэй"}
+                          {selectedRole === "driver" && "Бүртгэгч - Машин бүртгэх, гаргах эрхтэй"}
                           {selectedRole === "manager" && "Менежер - Бүх системийн эрхтэй, тайлан харах боломжтой"}
                           {selectedRole === "director" &&
                             "Захирал - Бүх системийн дээд эрхтэй, бүх мэдээлэл харах боломжтой"}
@@ -2664,7 +2664,7 @@ export default function DirectorPage() {
                         {selectedRole === "manager"
                           ? "Менежер"
                           : selectedRole === "driver"
-                            ? "Жолооч"
+                            ? "Бүртгэгч"
                             : selectedRole === "director"
                               ? "Захирал"
                               : "Засварчин"}{" "}
@@ -3133,7 +3133,7 @@ export default function DirectorPage() {
               {editingUser?.role === "manager"
                 ? "Менежер"
                 : editingUser?.role === "driver"
-                  ? "Жолооч"
+                  ? "Бүртгэгч"
                   : editingUser?.role === "director"
                     ? "Захирал"
                     : "Ажилчин"}{" "}
