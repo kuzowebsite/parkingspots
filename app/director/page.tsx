@@ -3459,7 +3459,7 @@ export default function DirectorPage() {
           <div className="space-y-6">
             {/* Leather Zone */}
             <div className="space-y-3">
-              <h4 className="font-medium text-lg text-white">Арьсан талбай</h4>
+              <h4 className="font-medium text-lg text-white">Тен талбай</h4>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="leatherFirst" className="text-gray-300">
@@ -3504,7 +3504,7 @@ export default function DirectorPage() {
 
             {/* Spare Zone */}
             <div className="space-y-3">
-              <h4 className="font-medium text-lg text-white">Сэлбэг талбай</h4>
+              <h4 className="font-medium text-lg text-white">Сафари талбай</h4>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="spareFirst" className="text-gray-300">
