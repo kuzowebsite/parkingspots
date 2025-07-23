@@ -6,16 +6,12 @@ import { ref, push, onValue, set, update } from "firebase/database"
 import { auth, database } from "@/lib/firebase"
 import type { ParkingRecord, UserProfile } from "@/types"
 import { Home, History, User, LogOut, Search, X, Car, Eye, EyeOff } from "lucide-react"
-// Remove the useRouter import line completely
-// import { useRouter } from "next/navigation"
 
 export default function ParkingSystem() {
   const [user, setUser] = useState<FirebaseUser | null>(null)
   const [loading, setLoading] = useState(true)
   const [showSplash, setShowSplash] = useState(true)
   const [loadingProgress, setLoadingProgress] = useState(0)
-  // Remove this line completely
-  // const [router] = useRouter()
 
   // Home states
   const [carNumber, setCarNumber] = useState("")
@@ -42,8 +38,8 @@ export default function ParkingSystem() {
   const [filteredRecords, setFilteredRecords] = useState<ParkingRecord[]>([])
 
   // Filter states
-  const [filterYear, setFilterYear] = useState("")
-  const [filterMonth, setFilterMonth] = useState("")
+  const [filterDay, setFilterDay] = useState("")
+  const [filterTime, setFilterTime] = useState("")
   const [filterCarNumber, setFilterCarNumber] = useState("")
 
   // Profile states
@@ -177,23 +173,25 @@ export default function ParkingSystem() {
     }
   }, [showSplash])
 
-  // Filter records based on year, month, car number, and type
+  // Filter records based on day, time, car number, and type
   useEffect(() => {
     let filtered = [...allRecords]
 
-    // Filter by year
-    if (filterYear) {
+    // Filter by day
+    if (filterDay) {
       filtered = filtered.filter((record) => {
         const recordDate = new Date(record.timestamp)
-        return recordDate.getFullYear().toString() === filterYear
+        const recordDay = recordDate.toISOString().split("T")[0] // YYYY-MM-DD format
+        return recordDay === filterDay
       })
     }
 
-    // Filter by month
-    if (filterMonth) {
+    // Filter by time (hour)
+    if (filterTime) {
       filtered = filtered.filter((record) => {
         const recordDate = new Date(record.timestamp)
-        return (recordDate.getMonth() + 1).toString().padStart(2, "0") === filterMonth
+        const recordHour = recordDate.getHours().toString().padStart(2, "0")
+        return recordHour === filterTime
       })
     }
 
@@ -217,7 +215,7 @@ export default function ParkingSystem() {
     }
 
     setFilteredRecords(filtered)
-  }, [allRecords, filterYear, filterMonth, filterCarNumber, profile.role, profile.name])
+  }, [allRecords, filterDay, filterTime, filterCarNumber, profile.role, profile.name])
 
   // Update the loadRecentRecords function to ensure proper data fetching
   const loadRecentRecords = () => {
@@ -246,8 +244,12 @@ export default function ParkingSystem() {
                 record.driverName === "Систем Админ" // Allow test records
               )
             })
+            .filter((record) => {
+              // Only show entry records (not completed/exit records)
+              return record.type === "entry" && !record.exitTime
+            })
             .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-            .slice(0, 3) // Last 3 records
+            .slice(0, profile.role === "employee" ? 5 : 3) // Show 5 records for employees, 3 for others
           setRecentRecords(records)
           console.log("Recent records loaded:", records.length, "records")
         } else {
@@ -446,7 +448,7 @@ export default function ParkingSystem() {
                 },
                 general: {
                   firstHour: data.general?.firstHour || 0,
-                  subsequentHour: data.subsequentHour || 0,
+                  subsequentHour: data.general?.subsequentHour || 0,
                 },
               })
             }
@@ -787,7 +789,7 @@ export default function ParkingSystem() {
       return
     }
     if (selectedEmployees.length === 0) {
-      alert("Ажилчин сонгоно уу")
+      alert("Засварчин сонгоно уу")
       return
     }
 
@@ -955,7 +957,7 @@ export default function ParkingSystem() {
           if (error.code === "auth/requires-recent-login") {
             alert("Профайл шинэчлэгдлээ. Нууц үг солихын тулд дахин нэвтэрнэ үү.")
           } else {
-            alert("Профайл шинэчлэгдлээ. Нууц үг солихад алдаа гарлаа.")
+            alert("Профайл шинэчлэгдлээ. Нууц үг солиход алдаа гарлаа.")
           }
         }
       } else {
@@ -1015,12 +1017,6 @@ export default function ParkingSystem() {
 
   const cancelLogout = () => {
     setShowLogoutModal(false)
-  }
-
-  // Get unique years from records for dropdown
-  const getAvailableYears = () => {
-    const years = allRecords.map((record) => new Date(record.timestamp).getFullYear())
-    return [...new Set(years)].sort((a, b) => b - a)
   }
 
   // Add useEffect to load records when user changes
@@ -1268,12 +1264,12 @@ export default function ParkingSystem() {
             <div className="flex flex-col justify-center space-y-8 items-center py-8">
               <button
                 onClick={() => setActiveTab("home")}
-                className={`flex flex-col items-center p-4 rounded-2xl transition-colors ${
-                  activeTab === "home" ? "bg-emerald-400" : ""
-                }`}
+                className="flex flex-col items-center p-4 rounded-2xl transition-colors"
               >
-                <Home className={`w-8 h-8 ${activeTab === "home" ? "text-black" : "text-white/70"}`} />
-                <span className={`text-xs xl:text-sm mt-2 ${activeTab === "home" ? "text-black" : "text-white/70"}`}>
+                <Home className={`w-8 h-8 ${activeTab === "home" ? "text-emerald-400" : "text-white/70"}`} />
+                <span
+                  className={`text-xs xl:text-sm mt-2 ${activeTab === "home" ? "text-emerald-400" : "text-white/70"}`}
+                >
                   Нүүр
                 </span>
               </button>
@@ -1281,13 +1277,11 @@ export default function ParkingSystem() {
               {profile.role !== "employee" && (
                 <button
                   onClick={() => setActiveTab("records")}
-                  className={`flex flex-col items-center p-4 rounded-2xl transition-colors ${
-                    activeTab === "records" ? "bg-emerald-400" : ""
-                  }`}
+                  className="flex flex-col items-center p-4 rounded-2xl transition-colors"
                 >
-                  <Car className={`w-8 h-8 ${activeTab === "records" ? "text-black" : "text-white/70"}`} />
+                  <Car className={`w-8 h-8 ${activeTab === "records" ? "text-emerald-400" : "text-white/70"}`} />
                   <span
-                    className={`text-xs xl:text-sm mt-2 ${activeTab === "records" ? "text-black" : "text-white/70"}`}
+                    className={`text-xs xl:text-sm mt-2 ${activeTab === "records" ? "text-emerald-400" : "text-white/70"}`}
                   >
                     Бүртгэл
                   </span>
@@ -1295,23 +1289,23 @@ export default function ParkingSystem() {
               )}
               <button
                 onClick={() => setActiveTab("history")}
-                className={`flex flex-col items-center p-4 rounded-2xl transition-colors ${
-                  activeTab === "history" ? "bg-emerald-400" : ""
-                }`}
+                className="flex flex-col items-center p-4 rounded-2xl transition-colors"
               >
-                <History className={`w-8 h-8 ${activeTab === "history" ? "text-black" : "text-white/70"}`} />
-                <span className={`text-xs xl:text-sm mt-2 ${activeTab === "history" ? "text-black" : "text-white/70"}`}>
+                <History className={`w-8 h-8 ${activeTab === "history" ? "text-emerald-400" : "text-white/70"}`} />
+                <span
+                  className={`text-xs xl:text-sm mt-2 ${activeTab === "history" ? "text-emerald-400" : "text-white/70"}`}
+                >
                   Түүх
                 </span>
               </button>
               <button
                 onClick={() => setActiveTab("profile")}
-                className={`flex flex-col items-center p-4 rounded-2xl transition-colors ${
-                  activeTab === "profile" ? "bg-emerald-400" : ""
-                }`}
+                className="flex flex-col items-center p-4 rounded-2xl transition-colors"
               >
-                <User className={`w-8 h-8 ${activeTab === "profile" ? "text-black" : "text-white/70"}`} />
-                <span className={`text-xs xl:text-sm mt-2 ${activeTab === "profile" ? "text-black" : "text-white/70"}`}>
+                <User className={`w-8 h-8 ${activeTab === "profile" ? "text-emerald-400" : "text-white/70"}`} />
+                <span
+                  className={`text-xs xl:text-sm mt-2 ${activeTab === "profile" ? "text-emerald-400" : "text-white/70"}`}
+                >
                   Профайл
                 </span>
               </button>
@@ -1381,14 +1375,14 @@ export default function ParkingSystem() {
                     </div>
                     <div className="employee-dropdown-container">
                       <div className="space-y-2">
-                        <label className="text-white/70 text-sm md:text-base">Ажилчин</label>
+                        <label className="text-white/70 text-sm md:text-base">Засварчин</label>
                         <div className="relative">
                           <div
                             onClick={() => setShowEmployeeDropdown(!showEmployeeDropdown)}
                             className="w-full px-4 py-3 md:px-6 md:py-4 bg-gray-900/95 backdrop-blur-md border border-gray-700/50 rounded-xl md:rounded-2xl text-white cursor-pointer flex items-center justify-between text-sm md:text-base min-h-[48px] md:min-h-[56px]"
                           >
                             <span className={selectedEmployees.length > 0 ? "text-white" : "text-white/50"}>
-                              {selectedEmployees.length > 0 ? selectedEmployees.join(", ") : "Ажилчин сонгоно уу"}
+                              {selectedEmployees.length > 0 ? selectedEmployees.join(", ") : "Засварчин сонгоно уу"}
                             </span>
                             <svg
                               className={`w-5 h-5 transition-transform ${showEmployeeDropdown ? "rotate-0" : "rotate-180"}`}
@@ -1402,7 +1396,7 @@ export default function ParkingSystem() {
                           {showEmployeeDropdown && (
                             <div className="absolute bottom-full left-0 right-0 mb-2 bg-gray-900/95 backdrop-blur-md border border-gray-700/50 rounded-xl md:rounded-2xl max-h-48 overflow-y-auto z-50 shadow-2xl">
                               {employees.length === 0 ? (
-                                <div className="p-4 text-white/70 text-center text-sm">Ажилчин бүртгэлгүй байна</div>
+                                <div className="p-4 text-white/70 text-center text-sm">Засварчин бүртгэлгүй байна</div>
                               ) : (
                                 <div className="p-2 max-h-44 overflow-y-auto">
                                   {employees.map((employee) => (
@@ -1574,7 +1568,123 @@ export default function ParkingSystem() {
                   </div>
                 </div>
               )}
-              {/* Recent Records */}
+
+              {/* Show recent records for employees */}
+              {profile.role === "employee" && (
+                <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl md:rounded-3xl p-6 md:p-8 lg:p-10">
+                  <div className="mb-6 md:mb-8">
+                    <h2 className="text-xl md:text-2xl lg:text-3xl font-semibold text-white mb-2">Миний бүртгэлүүд</h2>
+                    <p className="text-white/70 text-sm md:text-base">Танд {recentRecords.length} бүртгэл байна</p>
+                  </div>
+                  <div className="space-y-4">
+                    {recentRecords.length === 0 ? (
+                      <div className="text-center py-8 md:py-12">
+                        <div className="w-16 h-16 md:w-20 md:h-20 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <Car className="w-8 h-8 md:w-10 md:h-10 text-white/50" />
+                        </div>
+                        <p className="text-white/70 text-sm md:text-base">Одоогоор бүртгэл байхгүй байна</p>
+                      </div>
+                    ) : (
+                      recentRecords.map((record) => (
+                        <div
+                          key={record.id}
+                          className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl md:rounded-2xl p-4 md:p-6"
+                        >
+                          <div className="flex flex-col lg:flex-row lg:items-center justify-between space-y-4 lg:space-y-0">
+                            <div className="flex-1 space-y-2">
+                              <div className="flex items-center space-x-3">
+                                <span className="text-white font-semibold text-lg md:text-xl">{record.carNumber}</span>
+                                <span
+                                  className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                    record.type === "entry" && !record.exitTime
+                                      ? "bg-blue-500/20 text-blue-400 border border-blue-400/30"
+                                      : "bg-green-500/20 text-green-400 border border-green-400/30"
+                                  }`}
+                                >
+                                  {record.type === "entry" && !record.exitTime ? "Идэвхтэй" : "Дууссан"}
+                                </span>
+                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                                <p className="text-white/70">
+                                  <span className="text-white/50">Засварчин:</span> {record.driverName}
+                                </p>
+                                <p className="text-white/70">
+                                  <span className="text-white/50">Үйлчилгээ:</span> {(() => {
+                                    const employeeNames = record.driverName?.split(", ") || []
+                                    const positions = employeeNames.map((name) => {
+                                      const employee = employees.find((emp) => emp.name === name)
+                                      return employee?.position || "Тодорхойгүй"
+                                    })
+                                    return positions.join(", ")
+                                  })()}
+                                </p>
+                                <p className="text-white/70">
+                                  <span className="text-white/50">Машины марк:</span> {record.carBrand}
+                                </p>
+                                <p className="text-white/70">
+                                  <span className="text-white/50">Талбай:</span>{" "}
+                                  {record.parkingArea === "leather"
+                                    ? "Тен"
+                                    : record.parkingArea === "spare"
+                                      ? "Сафари"
+                                      : record.parkingArea === "general"
+                                        ? "Талбай"
+                                        : record.parkingArea}
+                                </p>
+                                <p className="text-white/70">
+                                  <span className="text-white/50">Орсон цаг:</span>{" "}
+                                  {formatDetailedTime(record.entryTime || record.timestamp)}
+                                </p>
+                                <p className="text-white/70">
+                                  <span className="text-white/50">Зогссон хугацаа:</span>{" "}
+                                  {calculateParkingDuration(record.entryTime || record.timestamp)} цаг
+                                </p>
+                                {record.exitTime && (
+                                  <p className="text-white/70">
+                                    <span className="text-white/50">Гарсан цаг:</span>{" "}
+                                    {formatDetailedTime(record.exitTime)}
+                                  </p>
+                                )}
+                                {record.amount && record.amount > 0 ? (
+                                  <p className="text-emerald-400 font-semibold">
+                                    <span className="text-white/50">Төлбөр:</span> {record.amount.toLocaleString()}₮
+                                  </p>
+                                ) : (
+                                  <p className="text-emerald-400 font-semibold">
+                                    <span className="text-white/50">Одоогийн төлбөр:</span>{" "}
+                                    {calculateCurrentParkingFee(
+                                      record.entryTime || record.timestamp,
+                                      record.parkingArea,
+                                    ).toLocaleString()}
+                                    ₮
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          {/* Display images if available */}
+                          {record.images && record.images.length > 0 && (
+                            <div className="mt-4 pt-4 border-t border-white/10">
+                              <p className="text-white/70 text-sm mb-2">Зургууд:</p>
+                              <div className="flex space-x-2">
+                                {record.images.map((image, index) => (
+                                  <img
+                                    key={index}
+                                    src={image || "/placeholder.svg"}
+                                    alt={`Record image ${index + 1}`}
+                                    className="w-16 h-16 object-cover rounded-lg border border-white/20 cursor-pointer hover:scale-110 transition-transform"
+                                    onClick={() => openImageViewer(record.images || [], index)}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -1621,12 +1731,33 @@ export default function ParkingSystem() {
                                 Идэвхтэй
                               </span>
                             </div>
+
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
                               <p className="text-white/70">
-                                <span className="text-white/50">Жолооч:</span> {record.driverName}
+                                <span className="text-white/50">Засварчин:</span> {record.driverName}
+                              </p>
+                              <p className="text-white/70">
+                                <span className="text-white/50">Үйлчилгээ:</span> {(() => {
+                                  const employeeNames = record.driverName?.split(", ") || []
+                                  const positions = employeeNames.map((name) => {
+                                    const employee = employees.find((emp) => emp.name === name)
+                                    return employee?.position || "Тодорхойгүй"
+                                  })
+                                  return positions.join(", ")
+                                })()}
                               </p>
                               <p className="text-white/70">
                                 <span className="text-white/50">Машины марк:</span> {record.carBrand}
+                              </p>
+                              <p className="text-white/70">
+                                <span className="text-white/50">Талбай:</span>{" "}
+                                {record.parkingArea === "leather"
+                                  ? "Тен"
+                                  : record.parkingArea === "spare"
+                                    ? "Сафари"
+                                    : record.parkingArea === "general"
+                                      ? "Талбай"
+                                      : record.parkingArea}
                               </p>
                               <p className="text-white/70">
                                 <span className="text-white/50">Орсон цаг:</span>{" "}
@@ -1708,35 +1839,27 @@ export default function ParkingSystem() {
                   {!filterCollapsed && (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl">
                       <div className="space-y-2">
-                        <label className="text-white/70 text-sm">Жил</label>
-                        <select
-                          value={filterYear}
-                          onChange={(e) => setFilterYear(e.target.value)}
+                        <label className="text-white/70 text-sm">Өдөр</label>
+                        <input
+                          type="date"
+                          value={filterDay}
+                          onChange={(e) => setFilterDay(e.target.value)}
                           className="w-full px-3 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-400"
-                        >
-                          <option value="" className="bg-gray-800">
-                            Бүх жил
-                          </option>
-                          {getAvailableYears().map((year) => (
-                            <option key={year} value={year.toString()} className="bg-gray-800">
-                              {year}
-                            </option>
-                          ))}
-                        </select>
+                        />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-white/70 text-sm">Сар</label>
+                        <label className="text-white/70 text-sm">Цаг</label>
                         <select
-                          value={filterMonth}
-                          onChange={(e) => setFilterMonth(e.target.value)}
+                          value={filterTime}
+                          onChange={(e) => setFilterTime(e.target.value)}
                           className="w-full px-3 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-400"
                         >
                           <option value="" className="bg-gray-800">
-                            Бүх сар
+                            Бүх цаг
                           </option>
-                          {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
-                            <option key={month} value={month.toString().padStart(2, "0")} className="bg-gray-800">
-                              {month}-р сар
+                          {Array.from({ length: 24 }, (_, i) => i).map((hour) => (
+                            <option key={hour} value={hour.toString().padStart(2, "0")} className="bg-gray-800">
+                              {hour.toString().padStart(2, "0")}:00
                             </option>
                           ))}
                         </select>
@@ -1766,7 +1889,7 @@ export default function ParkingSystem() {
                     filteredRecords.map((record) => (
                       <div
                         key={record.id}
-                        className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl md:rounded-2xl p-4 md:p-6"
+                        className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl md:rounded-2xl p-4 md:p-6"
                       >
                         <div className="flex flex-col lg:flex-row lg:items-center justify-between space-y-4 lg:space-y-0">
                           <div className="flex-1 space-y-2">
@@ -1778,10 +1901,30 @@ export default function ParkingSystem() {
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 text-sm">
                               <p className="text-white/70">
-                                <span className="text-white/50">Жолооч:</span> {record.driverName}
+                                <span className="text-white/50">Засварчин:</span> {record.driverName}
+                              </p>
+                              <p className="text-white/70">
+                                <span className="text-white/50">Үйлчилгээ:</span> {(() => {
+                                  const employeeNames = record.driverName?.split(", ") || []
+                                  const positions = employeeNames.map((name) => {
+                                    const employee = employees.find((emp) => emp.name === name)
+                                    return employee?.position || "Тодорхойгүй"
+                                  })
+                                  return positions.join(", ")
+                                })()}
                               </p>
                               <p className="text-white/70">
                                 <span className="text-white/50">Машины марк:</span> {record.carBrand}
+                              </p>
+                              <p className="text-white/70">
+                                <span className="text-white/50">Талбай:</span>{" "}
+                                {record.parkingArea === "leather"
+                                  ? "Тен"
+                                  : record.parkingArea === "spare"
+                                    ? "Сафари"
+                                    : record.parkingArea === "general"
+                                      ? "Талбай"
+                                      : record.parkingArea}
                               </p>
                               <p className="text-white/70">
                                 <span className="text-white/50">Орсон:</span>{" "}
@@ -1812,7 +1955,7 @@ export default function ParkingSystem() {
                                 <img
                                   key={index}
                                   src={image || "/placeholder.svg"}
-                                  alt={`Record image ${index + 1}`}
+                                  alt={`Image ${index + 1}`}
                                   className="w-16 h-16 object-cover rounded-lg border border-white/20 cursor-pointer hover:scale-110 transition-transform"
                                   onClick={() => openImageViewer(record.images || [], index)}
                                 />
@@ -1891,7 +2034,11 @@ export default function ParkingSystem() {
                       <label className="text-white/70 text-sm md:text-base">Эрх</label>
                       <input
                         value={
-                          profile.role === "manager" ? "Менежер" : profile.role === "employee" ? "Ажилчин" : "Жолооч"
+                          profile.role === "manager"
+                            ? "Менежер"
+                            : profile.role === "employee"
+                              ? "Засварчин"
+                              : "Бүртгэгч"
                         }
                         disabled
                         className="w-full px-4 py-3 md:px-6 md:py-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl md:rounded-2xl text-white/50 disabled:opacity-50 text-sm md:text-base"
@@ -1988,53 +2135,41 @@ export default function ParkingSystem() {
           <div className="flex justify-around items-center py-2">
             <button
               onClick={() => setActiveTab("home")}
-              className={`flex flex-col items-center p-3 rounded-xl transition-colors ${
-                activeTab === "home" ? "bg-emerald-400" : ""
-              }`}
+              className="flex flex-col items-center p-3 rounded-xl transition-colors"
             >
-              <Home className={`w-6 h-6 ${activeTab === "home" ? "text-black" : "text-white/70"}`} />
-              <span className={`text-xs mt-1 ${activeTab === "home" ? "text-black" : "text-white/70"}`}>Нүүр</span>
+              <Home className={`w-6 h-6 ${activeTab === "home" ? "text-emerald-400" : "text-white/70"}`} />
+              {activeTab === "home" && <span className="text-xs mt-1 text-emerald-400">Нүүр</span>}
             </button>
             {/* Hide records tab for employees */}
             {profile.role !== "employee" && (
               <button
                 onClick={() => setActiveTab("records")}
-                className={`flex flex-col items-center p-3 rounded-xl transition-colors ${
-                  activeTab === "records" ? "bg-emerald-400" : ""
-                }`}
+                className="flex flex-col items-center p-3 rounded-xl transition-colors"
               >
-                <Car className={`w-6 h-6 ${activeTab === "records" ? "text-black" : "text-white/70"}`} />
-                <span className={`text-xs mt-1 ${activeTab === "records" ? "text-black" : "text-white/70"}`}>
-                  Бүртгэл
-                </span>
+                <Car className={`w-6 h-6 ${activeTab === "records" ? "text-emerald-400" : "text-white/70"}`} />
+                {activeTab === "records" && <span className="text-xs mt-1 text-emerald-400">Бүртгэл</span>}
               </button>
             )}
             <button
               onClick={() => setActiveTab("history")}
-              className={`flex flex-col items-center p-3 rounded-xl transition-colors ${
-                activeTab === "history" ? "bg-emerald-400" : ""
-              }`}
+              className="flex flex-col items-center p-3 rounded-xl transition-colors"
             >
-              <History className={`w-6 h-6 ${activeTab === "history" ? "text-black" : "text-white/70"}`} />
-              <span className={`text-xs mt-1 ${activeTab === "history" ? "text-black" : "text-white/70"}`}>Түүх</span>
+              <History className={`w-6 h-6 ${activeTab === "history" ? "text-emerald-400" : "text-white/70"}`} />
+              {activeTab === "history" && <span className="text-xs mt-1 text-emerald-400">Түүх</span>}
             </button>
             <button
               onClick={() => setActiveTab("profile")}
-              className={`flex flex-col items-center p-3 rounded-xl transition-colors ${
-                activeTab === "profile" ? "bg-emerald-400" : ""
-              }`}
+              className="flex flex-col items-center p-3 rounded-xl transition-colors"
             >
-              <User className={`w-6 h-6 ${activeTab === "profile" ? "text-black" : "text-white/70"}`} />
-              <span className={`text-xs mt-1 ${activeTab === "profile" ? "text-black" : "text-white/70"}`}>
-                Профайл
-              </span>
+              <User className={`w-6 h-6 ${activeTab === "profile" ? "text-emerald-400" : "text-white/70"}`} />
+              {activeTab === "profile" && <span className="text-xs mt-1 text-emerald-400">Профайл</span>}
             </button>
             <button
               onClick={handleLogoutClick}
               className="flex flex-col items-center p-3 rounded-xl transition-colors hover:bg-red-500/20"
             >
               <LogOut className="w-6 h-6 text-white/70 hover:text-red-400" />
-              <span className="text-xs mt-1 text-white/70">Гарах</span>
+              {/* No text for logout button */}
             </button>
           </div>
         </div>
@@ -2112,7 +2247,7 @@ export default function ParkingSystem() {
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-6 w-full max-w-sm">
             <div className="text-center space-y-4">
-              <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto">
+              <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                 <LogOut className="w-8 h-8 text-red-400" />
               </div>
               <div>
@@ -2151,8 +2286,9 @@ export default function ParkingSystem() {
                 <p className="text-white/70 text-sm">Дараах мэдээллийг шалгаад баталгаажуулна уу</p>
               </div>
 
-              <div className="space-y-4 bg-white/5 rounded-xl p-4">
-                <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="space-y-3 bg-white/5 rounded-xl p-4">
+                <h4 className="text-white font-medium text-sm">Өмнөх бүртгэл:</h4>
+                <div className="grid grid-cols-2 gap-3 text-xs">
                   <div>
                     <p className="text-white/50">Машины дугаар:</p>
                     <p className="text-white font-semibold text-lg">{exitingRecord.carNumber}</p>
@@ -2161,32 +2297,12 @@ export default function ParkingSystem() {
                     <p className="text-white/50">Машины марк:</p>
                     <p className="text-white">{exitingRecord.carBrand}</p>
                   </div>
-                  <div>
-                    <p className="text-white/50">Жолооч:</p>
-                    <p className="text-white">{exitingRecord.driverName}</p>
-                  </div>
-                  <div>
-                    <p className="text-white/50">Зогссон хугацаа:</p>
-                    <p className="text-white font-semibold">{exitDetails.duration} цаг</p>
-                  </div>
-                </div>
-
-                <div className="border-t border-white/10 pt-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-white/70">Орсон цаг:</span>
-                    <span className="text-white text-sm">
+                  <div className="col-span-2">
+                    <p className="text-white/50">Орсон цаг:</p>
+                    <p className="text-white">
                       {formatDetailedTime(exitingRecord.entryTime || exitingRecord.timestamp)}
-                    </span>
+                    </p>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-white/70">Гарах цаг:</span>
-                    <span className="text-white text-sm">{formatDetailedTime(exitDetails.exitTime)}</span>
-                  </div>
-                </div>
-
-                <div className="bg-emerald-500/10 border border-emerald-400/30 rounded-lg p-4 text-center">
-                  <p className="text-emerald-400 text-sm mb-1">Нийт төлбөр</p>
-                  <p className="text-emerald-400 font-bold text-2xl">{exitDetails.fee.toLocaleString()}₮</p>
                 </div>
               </div>
 
@@ -2230,7 +2346,7 @@ export default function ParkingSystem() {
                   <h4 className="text-white font-medium text-sm">Өмнөх бүртгэл:</h4>
                   <div className="grid grid-cols-2 gap-3 text-xs">
                     <div>
-                      <p className="text-white/50">Жолооч:</p>
+                      <p className="text-white/50">Бүртгэгч:</p>
                       <p className="text-white">{duplicateCarData.existingRecord.driverName}</p>
                     </div>
                     <div>
@@ -2322,7 +2438,7 @@ export default function ParkingSystem() {
 
             {/* Instructions */}
             <div className="absolute bottom-4 right-4 text-white/70 text-xs">
-              <p>ESC - Хаах | ← → - Навигаци</p>
+              <p>ESC - Хаах</p>
             </div>
           </div>
         </div>
