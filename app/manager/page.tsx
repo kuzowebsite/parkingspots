@@ -1068,7 +1068,7 @@ export default function ManagerPage() {
         "№": index + 1,
         "Машины дугаар": record.carNumber,
         Засварчин: record.mechanicName || record.driverName || "-",
-        "Албан тушаал": (() => {
+        "Үйлчилгээ": (() => {
           const employee = employees.find((emp) => emp.name === (record.mechanicName || record.driverName))
           return employee?.position || "-"
         })(),
@@ -1091,7 +1091,7 @@ export default function ManagerPage() {
         { wch: 5 }, // №
         { wch: 15 }, // Машины дугаар
         { wch: 20 }, // Засварчин
-        { wch: 15 }, // Албан тушаал
+        { wch: 15 }, // Үйлчилгээ
         { wch: 15 }, // Талбай
         { wch: 15 }, // Машины марк (NEW)
         { wch: 20 }, // Орсон цаг
@@ -1113,7 +1113,7 @@ export default function ManagerPage() {
           "№": "",
           "Машины дугаар": "",
           Засварчин: "",
-          "Албан тушаал": "",
+          "Үйлчилгээ": "",
           Талбай: "",
           "Машины марк": "",
           "Орсон цаг": "",
@@ -1130,7 +1130,7 @@ export default function ManagerPage() {
           "№": "",
           "Машины дугаар": "",
           Засварчин: "",
-          "Албан тушаал": "",
+          "Үйлчилгээ": "",
           Талбай: "",
           "Машины марк": "",
           "Орсон цаг": "",
@@ -1147,7 +1147,7 @@ export default function ManagerPage() {
           "№": "",
           "Машины дугаар": "",
           Засварчин: "",
-          "Албан тушаал": "",
+          "Үйлчилгээ": "",
           Талбай: "",
           "Машины марк": "",
           "Орсон цаг": "",
@@ -1164,7 +1164,7 @@ export default function ManagerPage() {
           "№": "",
           "Машины дугаар": "",
           Засварчин: "",
-          "Албан тушаал": "",
+          "Үйлчилгээ": "",
           Талбай: "",
           "Машины марк": "",
           "Орсон цаг": "",
@@ -1228,7 +1228,7 @@ export default function ManagerPage() {
         "№": index + 1,
         "Машины дугаар": record.carNumber,
         Засварчин: record.mechanicName || record.driverName || "-",
-        "Албан тушаал": (() => {
+        "Үйлчилгээ": (() => {
           const employee = employees.find((emp) => emp.name === (record.mechanicName || record.driverName))
           return employee?.position || "-"
         })(),
@@ -1251,7 +1251,7 @@ export default function ManagerPage() {
         { wch: 5 }, // №
         { wch: 15 }, // Машины дугаар
         { wch: 20 }, // Засварчин
-        { wch: 15 }, // Албан тушаал
+        { wch: 15 }, // Үйлчилгээ
         { wch: 15 }, // Талбай
         { wch: 15 }, // Машины марк (NEW)
         { wch: 20 }, // Орсон цаг
@@ -1285,7 +1285,7 @@ export default function ManagerPage() {
           "№": "",
           "Машины дугаар": "",
           Засварчин: "",
-          "Албан тушаал": "",
+          "Үйлчилгээ": "",
           Талбай: "",
           "Машины марк": "",
           "Орсон цаг": "",
@@ -1302,7 +1302,7 @@ export default function ManagerPage() {
           "№": "",
           "Машины дугаар": "",
           Засварчин: "",
-          "Албан тушаал": "",
+          "Үйлчилгээ": "",
           Талбай: "",
           "Машины марк": "",
           "Орсон цаг": "",
@@ -1319,7 +1319,7 @@ export default function ManagerPage() {
           "№": "",
           "Машины дугаар": "",
           Засварчин: "",
-          "Албан тушаал": "",
+          "Үйлчилгээ": "",
           Талбай: "",
           "Машины марк": "",
           "Орсон цаг": "",
@@ -1336,7 +1336,7 @@ export default function ManagerPage() {
           "№": "",
           "Машины дугаар": "",
           Засварчин: "",
-          "Албан тушаал": "",
+          "Үйлчилгээ": "",
           Талбай: "",
           "Машины марк": "",
           "Орсон цаг": "",
@@ -2832,7 +2832,7 @@ export default function ManagerPage() {
                             className="text-left p-1 text-gray-300 cursor-pointer hover:text-white text-xs"
                             onClick={() => handleSort("position")}
                           >
-                            Албан тушаал
+                            Үйлчилгээ
                             {sortField === "position" && (
                               <span className="ml-1">{sortDirection === "asc" ? "↑" : "↓"}</span>
                             )}
@@ -3090,14 +3090,14 @@ export default function ManagerPage() {
             </div>
             <div>
               <Label htmlFor="employeePosition" className="text-gray-300">
-                Албан тушаал
+                Үйлчилгээ
               </Label>
               <Input
                 id="employeePosition"
                 type="text"
                 value={newEmployee.position}
                 onChange={(e) => setNewEmployee({ ...newEmployee, position: e.target.value })}
-                placeholder="Албан тушаал"
+                placeholder="Үйлчилгээ"
                 className="bg-gray-800 text-white border-gray-700"
               />
             </div>
