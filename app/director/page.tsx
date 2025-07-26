@@ -1,5 +1,6 @@
 "use client"
-import type React from "react"
+import React from "react"
+
 import { DialogFooter } from "@/components/ui/dialog"
 import { useRouter } from "next/navigation"
 
@@ -36,14 +37,13 @@ import {
   Users,
   Car,
   BarChart3,
-  EyeOff,
   ChevronDown,
   X,
 } from "lucide-react"
 import * as XLSX from "xlsx"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover" // Added Popover imports
-import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command" // Added Command imports
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
+import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command"
 
 export default function DirectorPage() {
   const router = useRouter()
@@ -59,11 +59,15 @@ export default function DirectorPage() {
   // Report states
   const [reportRecords, setReportRecords] = useState<any[]>([])
   const [filteredReportRecords, setFilteredReportRecords] = useState<any[]>([])
-  const [reportFilterYear, setReportFilterYear] = useState("")
-  const [reportFilterMonth, setReportFilterMonth] = useState("")
+  // Remove year and month filters, add day and time filters
+  const [reportFilterDay, setReportFilterDay] = useState("")
+  const [reportFilterTime, setReportFilterTime] = useState("")
   const [reportFilterCarNumber, setReportFilterCarNumber] = useState("")
-  const [reportFilterMechanic, setReportFilterMechanic] = useState<string[]>([]) // Changed to string[]
-  const [reportFilterPaymentStatus, setReportFilterPaymentStatus] = useState("") // New filter
+  const [reportFilterMechanic, setReportFilterMechanic] = useState<string[]>([])
+  const [reportFilterPaymentStatus, setReportFilterPaymentStatus] = useState("")
+  // Sorting states
+  const [sortField, setSortField] = useState<string>("")
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
   const [reportLoading, setReportLoading] = useState(false)
   const [totalCashAmount, setTotalCashAmount] = useState(0)
   const [totalCardAmount, setTotalCardAmount] = useState(0)
@@ -156,8 +160,8 @@ export default function DirectorPage() {
   })
   const [siteLoading, setSiteLoading] = useState(false)
   // Profile image and password states
-  const [showPassword, setShowConfirmPassword] = useState(false)
-  const [showConfirmPassword, setShowPassword] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
     newPassword: "",
@@ -187,7 +191,7 @@ export default function DirectorPage() {
   const [cashAmountInput, setCashAmountInput] = useState(0)
   const [cardAmountInput, setCardAmountInput] = useState(0)
   const [transferAmountInput, setTransferAmountInput] = useState(0)
-  const [paymentLoading, setPaymentLoading] = useState(0)
+  const [paymentLoading, setPaymentLoading] = useState(false)
   // Add a new state variable for `initialAmountToPay`
   const [initialAmountToPay, setInitialAmountToPay] = useState(0)
   // Edit record dialog states
@@ -197,11 +201,13 @@ export default function DirectorPage() {
     carNumber: "",
     mechanicName: "",
     carBrand: "",
+    parkingArea: "", // Add this field
+    position: "", // Add this field
     entryTime: "",
     exitTime: "",
     parkingDuration: "",
-    amount: 0, // Added amount field
-    images: [] as string[], // Added images field
+    amount: 0,
+    images: [] as string[],
   })
   const [editRecordLoading, setEditRecordLoading] = useState(false)
   const [deleteRecordLoading, setDeleteRecordLoading] = useState(false)
@@ -209,6 +215,104 @@ export default function DirectorPage() {
   const [isFilterOpen, setIsFilterOpen] = useState(true)
   // Logout loading state
   const [logoutLoading, setLogoutLoading] = useState(false)
+
+  // Function to get Mongolian area name
+  const getAreaNameInMongolian = (area: string): string => {
+    const areaMap: { [key: string]: string } = {
+      leather: "Тен",
+      spare: "Сафари",
+      general: "Талбай",
+      safari: "Сафари талбай",
+    }
+    return areaMap[area?.toLowerCase()] || area || "-"
+  }
+
+  // Handle table sorting
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc")
+    } else {
+      setSortField(field)
+      setSortDirection("asc")
+    }
+  }
+
+  // Get sorted records
+  const getSortedRecords = () => {
+    if (!sortField) return filteredReportRecords
+
+    return [...filteredReportRecords].sort((a, b) => {
+      let aValue: any = ""
+      let bValue: any = ""
+
+      switch (sortField) {
+        case "carNumber":
+          aValue = a.carNumber || ""
+          bValue = b.carNumber || ""
+          break
+        case "mechanicName":
+          aValue = a.mechanicName || a.driverName || ""
+          bValue = b.mechanicName || b.driverName || ""
+          break
+        case "position":
+          const aEmployee = employees.find((emp) => emp.name === (a.mechanicName || a.driverName))
+          const bEmployee = employees.find((emp) => emp.name === (b.mechanicName || b.driverName))
+          aValue = aEmployee?.position || ""
+          bValue = bEmployee?.position || ""
+          break
+        case "area":
+          aValue = getAreaNameInMongolian(a.parkingArea || a.carBrand)
+          bValue = getAreaNameInMongolian(b.parkingArea || b.carBrand)
+          break
+        case "carBrand":
+          aValue = a.carBrand || ""
+          bValue = b.carBrand || ""
+          break
+        case "entryTime":
+          aValue = new Date(a.entryTime || 0).getTime()
+          bValue = new Date(b.entryTime || 0).getTime()
+          break
+        case "exitTime":
+          aValue = new Date(a.exitTime || 0).getTime()
+          bValue = new Date(b.exitTime || 0).getTime()
+          break
+        case "amount":
+          aValue = calculateParkingFeeForReport(a)
+          bValue = calculateParkingFeeForReport(b)
+          break
+        case "paymentStatus":
+          aValue = a.paymentStatus === "paid" ? 1 : 0
+          bValue = b.paymentStatus === "paid" ? 1 : 0
+          break
+        default:
+          return 0
+      }
+
+      if (typeof aValue === "string" && typeof bValue === "string") {
+        return sortDirection === "asc" ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue)
+      }
+
+      if (sortDirection === "asc") {
+        return aValue > bValue ? 1 : aValue < bValue ? -1 : 0
+      } else {
+        return aValue < bValue ? 1 : aValue > bValue ? -1 : 0
+      }
+    })
+  }
+
+  // Function to group records by date
+  const groupRecordsByDate = (records: any[]) => {
+    const grouped: { [key: string]: any[] } = {}
+    records.forEach((record) => {
+      const recordDate = new Date(record.timestamp || record.entryTime) // Use timestamp or entryTime for grouping
+      const dateKey = recordDate.toLocaleDateString("mn-MN", { year: "numeric", month: "numeric", day: "numeric" }) // Format as YYYY.MM.DD
+      if (!grouped[dateKey]) {
+        grouped[dateKey] = []
+      }
+      grouped[dateKey].push(record)
+    })
+    return grouped
+  }
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -711,8 +815,6 @@ export default function DirectorPage() {
     setShowEditDialog(true)
   }
 
-  // In handleSaveEmployeeEdit function:
-
   // Delete employee
   const handleDeleteEmployee = async (employeeId: string, employeeName: string) => {
     if (!confirm(`${employeeName} ажилчныг устгахдаа итгэлтэй байна уу?`)) {
@@ -975,14 +1077,19 @@ export default function DirectorPage() {
         "№": index + 1,
         "Машины дугаар": record.carNumber,
         Засварчин: record.mechanicName || record.driverName || "-",
-        "Машины марк": record.carBrand || record.parkingArea || "-",
+        "Үйлчилгээ": (() => {
+          const employee = employees.find((emp) => emp.name === (record.mechanicName || record.driverName))
+          return employee?.position || "-"
+        })(),
+        Талбай: getAreaNameInMongolian(record.parkingArea || record.carBrand),
+        "Машины марк": record.carBrand || "-",
         "Орсон цаг": record.entryTime || "-",
         "Гарсан цаг": record.exitTime || "-",
         "Зогссон хугацаа": record.parkingDuration ? `${record.parkingDuration} ц` : "-",
         "Төлбөр (₮)": calculateParkingFeeForReport(record),
-        "Бэлэн мөнгө (₮)": record.cashAmount || 0, // Added cash amount
-        "Карт (₮)": record.cardAmount || 0, // Added card amount
-        "Харилцах (₮)": record.transferAmount || 0, // Added transfer amount
+        "Бэлэн мөнгө (₮)": record.cashAmount || 0,
+        "Карт (₮)": record.cardAmount || 0,
+        "Харилцах (₮)": record.transferAmount || 0,
         "Төлбөрийн төлөв": record.paymentStatus === "paid" ? "Төлсөн" : "Төлөөгүй",
         Зураг: record.images && record.images.length > 0 ? "Байна" : "Байхгүй",
       }))
@@ -993,7 +1100,9 @@ export default function DirectorPage() {
         { wch: 5 }, // №
         { wch: 15 }, // Машины дугаар
         { wch: 20 }, // Засварчин
-        { wch: 15 }, // Машины марк
+        { wch: 15 }, // Үйлчилгээ
+        { wch: 15 }, // Талбай
+        { wch: 15 }, // Машины марк (NEW)
         { wch: 20 }, // Орсон цаг
         { wch: 20 }, // Гарсан цаг
         { wch: 15 }, // Зогссон хугацаа
@@ -1013,6 +1122,8 @@ export default function DirectorPage() {
           "№": "",
           "Машины дугаар": "",
           Засварчин: "",
+          "Үйлчилгээ": "",
+          Талбай: "",
           "Машины марк": "",
           "Орсон цаг": "",
           "Гарсан цаг": "",
@@ -1028,6 +1139,8 @@ export default function DirectorPage() {
           "№": "",
           "Машины дугаар": "",
           Засварчин: "",
+          "Үйлчилгээ": "",
+          Талбай: "",
           "Машины марк": "",
           "Орсон цаг": "",
           "Гарсан цаг": "",
@@ -1043,6 +1156,8 @@ export default function DirectorPage() {
           "№": "",
           "Машины дугаар": "",
           Засварчин: "",
+          "Үйлчилгээ": "",
+          Талбай: "",
           "Машины марк": "",
           "Орсон цаг": "",
           "Гарсан цаг": "",
@@ -1058,6 +1173,8 @@ export default function DirectorPage() {
           "№": "",
           "Машины дугаар": "",
           Засварчин: "",
+          "Үйлчилгээ": "",
+          Талбай: "",
           "Машины марк": "",
           "Орсон цаг": "",
           "Гарсан цаг": "",
@@ -1120,14 +1237,19 @@ export default function DirectorPage() {
         "№": index + 1,
         "Машины дугаар": record.carNumber,
         Засварчин: record.mechanicName || record.driverName || "-",
-        "Машины марк": record.carBrand || record.parkingArea || "-",
+        "Үйлчилгээ": (() => {
+          const employee = employees.find((emp) => emp.name === (record.mechanicName || record.driverName))
+          return employee?.position || "-"
+        })(),
+        Талбай: getAreaNameInMongolian(record.parkingArea || record.carBrand),
+        "Машины марк": record.carBrand || "-",
         "Орсон цаг": record.entryTime || "-",
         "Гарсан цаг": record.exitTime || "-",
         "Зогссон хугацаа": record.parkingDuration ? `${record.parkingDuration} ц` : "-",
         "Төлбөр (₮)": calculateParkingFeeForReport(record),
-        "Бэлэн мөнгө (₮)": record.cashAmount || 0, // Added cash amount
-        "Карт (₮)": record.cardAmount || 0, // Added card amount
-        "Харилцах (₮)": record.transferAmount || 0, // Added transfer amount
+        "Бэлэн мөнгө (₮)": record.cashAmount || 0,
+        "Карт (₮)": record.cardAmount || 0,
+        "Харилцах (₮)": record.transferAmount || 0,
         "Төлбөрийн төлөв": record.paymentStatus === "paid" ? "Төлсөн" : "Төлөөгүй",
         Зураг: record.images && record.images.length > 0 ? "Байна" : "Байхгүй",
       }))
@@ -1138,7 +1260,9 @@ export default function DirectorPage() {
         { wch: 5 }, // №
         { wch: 15 }, // Машины дугаар
         { wch: 20 }, // Засварчин
-        { wch: 15 }, // Машины марк
+        { wch: 15 }, // Үйлчилгээ
+        { wch: 15 }, // Талбай
+        { wch: 15 }, // Машины марк (NEW)
         { wch: 20 }, // Орсон цаг
         { wch: 20 }, // Гарсан цаг
         { wch: 15 }, // Зогссон хугацаа
@@ -1170,6 +1294,8 @@ export default function DirectorPage() {
           "№": "",
           "Машины дугаар": "",
           Засварчин: "",
+          "Үйлчилгээ": "",
+          Талбай: "",
           "Машины марк": "",
           "Орсон цаг": "",
           "Гарсан цаг": "",
@@ -1185,6 +1311,8 @@ export default function DirectorPage() {
           "№": "",
           "Машины дугаар": "",
           Засварчин: "",
+          "Үйлчилгээ": "",
+          Талбай: "",
           "Машины марк": "",
           "Орсон цаг": "",
           "Гарсан цаг": "",
@@ -1200,6 +1328,8 @@ export default function DirectorPage() {
           "№": "",
           "Машины дугаар": "",
           Засварчин: "",
+          "Үйлчилгээ": "",
+          Талбай: "",
           "Машины марк": "",
           "Орсон цаг": "",
           "Гарсан цаг": "",
@@ -1215,6 +1345,8 @@ export default function DirectorPage() {
           "№": "",
           "Машины дугаар": "",
           Засварчин: "",
+          "Үйлчилгээ": "",
+          Талбай: "",
           "Машины марк": "",
           "Орсон цаг": "",
           "Гарсан цаг": "",
@@ -1270,27 +1402,28 @@ export default function DirectorPage() {
     return [...new Set(names)].filter((name) => name).sort()
   }
 
-  // Get unique years for report filter
-  const getReportAvailableYears = () => {
-    const years = reportRecords.map((record) => new Date(record.timestamp).getFullYear())
-    return [...new Set(years)].sort((a, b) => b - a)
-  }
-
-  // Filter report records
+  // Filter report records - Updated to use day and time filters instead of year and month
   useEffect(() => {
     let filtered = [...reportRecords]
-    if (reportFilterYear) {
+
+    // Filter by day
+    if (reportFilterDay) {
       filtered = filtered.filter((record) => {
         const recordDate = new Date(record.timestamp)
-        return recordDate.getFullYear().toString() === reportFilterYear
+        const recordDay = recordDate.toISOString().split("T")[0] // YYYY-MM-DD format
+        return recordDay === reportFilterDay
       })
     }
-    if (reportFilterMonth) {
+
+    // Filter by time (hour)
+    if (reportFilterTime) {
       filtered = filtered.filter((record) => {
         const recordDate = new Date(record.timestamp)
-        return (recordDate.getMonth() + 1).toString().padStart(2, "0") === reportFilterMonth
+        const recordHour = recordDate.getHours().toString().padStart(2, "0")
+        return recordHour === reportFilterTime
       })
     }
+
     if (reportFilterCarNumber) {
       filtered = filtered.filter((record) =>
         record.carNumber.toLowerCase().includes(reportFilterCarNumber.toLowerCase()),
@@ -1332,8 +1465,8 @@ export default function DirectorPage() {
     setTotalTransferAmount(transferSum)
   }, [
     reportRecords,
-    reportFilterYear,
-    reportFilterMonth,
+    reportFilterDay,
+    reportFilterTime,
     reportFilterCarNumber,
     reportFilterMechanic,
     reportFilterPaymentStatus,
@@ -1433,7 +1566,7 @@ export default function DirectorPage() {
       }
       // Update the user's main profile in the 'users' node
       await update(ref(database, `users/${editingUser.id}`), updateData)
-      
+
       // If the user is an employee, also update their record in the 'employees' node
       if (editingUser.role === "employee") {
         await update(ref(database, `employees/${editingUser.id}`), updateData)
@@ -1638,14 +1771,17 @@ export default function DirectorPage() {
   // Edit record functions
   const handleEditRecord = (record: any) => {
     setEditingRecord(record)
+    const employee = employees.find((emp) => emp.name === (record.mechanicName || record.driverName))
     setEditRecordData({
       carNumber: record.carNumber || "",
       mechanicName: record.mechanicName || record.driverName || "",
       carBrand: record.carBrand || record.parkingArea || "",
+      parkingArea: record.parkingArea || "general", // Initialize parking area
+      position: employee?.position || "", // Initialize position from employee data
       entryTime: record.entryTime || "",
       exitTime: record.exitTime || "",
       parkingDuration: record.parkingDuration || "",
-      amount: calculateParkingFeeForReport(record), // Initialize amount
+      amount: calculateParkingFeeForReport(record),
       images: record.images || [],
     })
     setShowEditRecordDialog(true)
@@ -1697,12 +1833,12 @@ export default function DirectorPage() {
         mechanicName: editRecordData.mechanicName.trim(),
         driverName: editRecordData.mechanicName.trim(), // Keep both for compatibility
         carBrand: editRecordData.carBrand.trim(),
-        parkingArea: editRecordData.carBrand.trim(), // Keep both for compatibility
+        parkingArea: editRecordData.parkingArea, // Save parking area
         entryTime: editRecordData.entryTime,
         exitTime: editRecordData.exitTime,
         parkingDuration: editRecordData.parkingDuration,
-        amount: editRecordData.amount, // Save the edited amount
-        images: editRecordData.images, // Save the updated images array
+        amount: editRecordData.amount,
+        images: editRecordData.images,
         updatedAt: new Date().toISOString(),
       }
       await update(ref(database, `parking_records/${editingRecord.id}`), updateData)
@@ -2528,63 +2664,45 @@ export default function DirectorPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="role" className="text-gray-300">
-                        Албан тушаал
+                        Үйлчилгээ
                       </Label>
                       <select
                         id="role"
                         value={selectedRole}
-                        onChange={(e) => {
+                        onChange={(e) =>
                           setSelectedRole(e.target.value as "manager" | "driver" | "employee" | "director")
-                          // Reset name and phone when role changes
-                          setNewDriver((prev) => ({ ...prev, name: "", phone: "" }))
-                          setIsNamePhoneAutoFilled(false)
-                        }}
-                        className="w-full px-3 py-2 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-800 text-white"
+                        }
+                        className="w-full px-3 py-2 bg-gray-800 text-white border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       >
-                        <option value="employee">Засварчин</option>
+                        <option value="employee">Ажилчин</option>
                         <option value="driver">Бүртгэгч</option>
                         <option value="manager">Менежер</option>
                         <option value="director">Захирал</option>
                       </select>
-                      <div className="mt-2 p-3 bg-gray-800 rounded-md">
-                        <p className="text-sm text-gray-400">
-                          {selectedRole === "employee" && "Засварчин - Зогсоолын үйл ажиллагаанд оролцох эрхтэй"}
-                          {selectedRole === "driver" && "Бүртгэгч - Машин бүртгэх, гаргах эрхтэй"}
-                          {selectedRole === "manager" && "Менежер - Бүх системийн эрхтэй, тайлан харах боломжтой"}
-                          {selectedRole === "director" &&
-                            "Захирал - Бүх системийн дээд эрхтэй, бүх мэдээлэл харах боломжтой"}
-                        </p>
-                      </div>
                     </div>
 
                     {selectedRole === "employee" && (
                       <div>
-                        <Label htmlFor="selectEmployee" className="text-gray-300">
-                          Засварчин сонгох
+                        <Label htmlFor="employee-select" className="text-gray-300">
+                          Ажилчин сонгох
                         </Label>
                         <select
-                          id="selectEmployee"
-                          value={
-                            newDriver.name
-                              ? availableEmployees.find((emp) => emp.name === newDriver.name)?.id || ""
-                              : ""
-                          }
+                          id="employee-select"
                           onChange={(e) => handleEmployeeSelection(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-800 text-white"
+                          className="w-full px-3 py-2 bg-gray-800 text-white border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >
                           <option value="">Сонгоно уу</option>
                           {availableEmployees.map((employee) => (
                             <option key={employee.id} value={employee.id}>
-                              {employee.name}
+                              {employee.name} - {employee.position}
                             </option>
                           ))}
                         </select>
-                        <p className="text-xs text-gray-500 mt-1">
-                          Эндээс сонгосноор нэр болон утасны дугаар автоматаар бөглөгдөнө.
-                        </p>
                       </div>
                     )}
+                  </div>
 
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="name" className="text-gray-300">
                         Нэр
@@ -2594,13 +2712,12 @@ export default function DirectorPage() {
                         type="text"
                         value={newDriver.name}
                         onChange={(e) => setNewDriver({ ...newDriver, name: e.target.value })}
-                        placeholder="Бүтэн нэрээ оруулна уу"
-                        required
-                        disabled={isNamePhoneAutoFilled} // Disable if auto-filled
                         className="bg-gray-800 text-white border-gray-700"
+                        placeholder="Нэрээ оруулна уу"
+                        required
+                        disabled={isNamePhoneAutoFilled}
                       />
                     </div>
-
                     <div>
                       <Label htmlFor="phone" className="text-gray-300">
                         Утасны дугаар
@@ -2610,12 +2727,14 @@ export default function DirectorPage() {
                         type="tel"
                         value={newDriver.phone}
                         onChange={(e) => setNewDriver({ ...newDriver, phone: e.target.value })}
-                        placeholder="99112233"
-                        disabled={isNamePhoneAutoFilled} // Disable if auto-filled
                         className="bg-gray-800 text-white border-gray-700"
+                        placeholder="Утасны дугаараа оруулна уу"
+                        disabled={isNamePhoneAutoFilled}
                       />
                     </div>
+                  </div>
 
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="email" className="text-gray-300">
                         И-мэйл хаяг
@@ -2625,12 +2744,11 @@ export default function DirectorPage() {
                         type="email"
                         value={newDriver.email}
                         onChange={(e) => setNewDriver({ ...newDriver, email: e.target.value })}
-                        placeholder="example@email.com"
-                        required
                         className="bg-gray-800 text-white border-gray-700"
+                        placeholder="И-мэйл хаягаа оруулна уу"
+                        required
                       />
                     </div>
-
                     <div>
                       <Label htmlFor="password" className="text-gray-300">
                         Нууц үг
@@ -2640,10 +2758,10 @@ export default function DirectorPage() {
                         type="password"
                         value={newDriver.password}
                         onChange={(e) => setNewDriver({ ...newDriver, password: e.target.value })}
-                        placeholder="Хамгийн багадаа 6 тэмдэгт"
+                        className="bg-gray-800 text-white border-gray-700"
+                        placeholder="Нууц үгээ оруулна уу"
                         required
                         minLength={6}
-                        className="bg-gray-800 text-white border-gray-700"
                       />
                     </div>
                   </div>
@@ -2662,13 +2780,12 @@ export default function DirectorPage() {
                       <>
                         <UserPlus className="w-4 h-4 mr-2" />
                         {selectedRole === "manager"
-                          ? "Менежер"
+                          ? "Менежер бүртгэх"
                           : selectedRole === "driver"
-                            ? "Бүртгэгч"
+                            ? "Бүртгэгч бүртгэх"
                             : selectedRole === "director"
-                              ? "Захирал"
-                              : "Засварчин"}{" "}
-                        бүртгэх
+                              ? "Захирал бүртгэх"
+                              : "Ажилчин бүртгэх"}
                       </>
                     )}
                   </Button>
@@ -2680,79 +2797,136 @@ export default function DirectorPage() {
           {/* Reports Tab */}
           <TabsContent value="reports" className="space-y-6">
             <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-white">Тайлан</h2>
+              <h2 className="text-2xl font-bold text-white">Зогсоолын тайлан</h2>
               <div className="flex space-x-2">
                 <Button
                   onClick={() => setShowDateRangeDialog(true)}
                   variant="outline"
                   size="sm"
-                  className="bg-gray-800 text-white border-gray-700 hover:bg-gray-700"
+                  className="flex items-center space-x-2 bg-gray-800 text-white border-gray-700 hover:bg-gray-700"
                 >
-                  <Calendar className="w-4 h-4 mr-2" />
-                  Огнооны хүрээгээр татах
+                  <Calendar className="w-4 h-4" />
+                  <span>Хугацаагаар татах</span>
                 </Button>
                 <Button
                   onClick={exportToExcel}
                   variant="outline"
                   size="sm"
-                  className="bg-gray-800 text-white border-gray-700 hover:bg-gray-700"
+                  className="flex items-center space-x-2 bg-gray-800 text-white border-gray-700 hover:bg-gray-700"
                 >
-                  <Download className="w-4 h-4 mr-2" />
-                  Excel татах
+                  <Download className="w-4 h-4" />
+                  <span>Excel татах</span>
                 </Button>
               </div>
             </div>
 
+            {/* Summary Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <Card className="bg-green-600 text-white border-green-500">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-green-100 text-sm font-medium">Бэлэн мөнгө</p>
+                      <p className="text-2xl font-bold">₮{totalCashAmount.toLocaleString()}</p>
+                    </div>
+                    <div className="bg-green-500 p-2 rounded-full">
+                      <TrendingUp className="h-6 w-6" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-blue-600 text-white border-blue-500">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-blue-100 text-sm font-medium">Карт</p>
+                      <p className="text-2xl font-bold">₮{totalCardAmount.toLocaleString()}</p>
+                    </div>
+                    <div className="bg-blue-500 p-2 rounded-full">
+                      <TrendingUp className="h-6 w-6" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-purple-600 text-white border-purple-500">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-purple-100 text-sm font-medium">Харилцах</p>
+                      <p className="text-2xl font-bold">₮{totalTransferAmount.toLocaleString()}</p>
+                    </div>
+                    <div className="bg-purple-500 p-2 rounded-full">
+                      <TrendingUp className="h-6 w-6" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gray-700 text-white border-gray-600">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-gray-300 text-sm font-medium">Нийт дүн</p>
+                      <p className="text-2xl font-bold">
+                        ₮{(totalCashAmount + totalCardAmount + totalTransferAmount).toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="bg-gray-600 p-2 rounded-full">
+                      <TrendingUp className="h-6 w-6" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
             {/* Filters */}
-            <Collapsible open={isFilterOpen} onOpenChange={setIsFilterOpen} className="group">
-              <Card className="bg-gray-900 text-white border-gray-700">
+            <Card className="bg-gray-900 text-white border-gray-700">
+              <Collapsible open={isFilterOpen} onOpenChange={setIsFilterOpen}>
                 <CollapsibleTrigger asChild>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 cursor-pointer">
-                    <CardTitle className="text-white">Шүүлтүүр</CardTitle>
-                    <ChevronDown className="h-5 w-5 text-gray-400 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                  <CardHeader className="cursor-pointer hover:bg-gray-800 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-white">Шүүлтүүр</CardTitle>
+                      <ChevronDown
+                        className={`h-4 w-4 transition-transform ${isFilterOpen ? "transform rotate-180" : ""}`}
+                      />
+                    </div>
                   </CardHeader>
                 </CollapsibleTrigger>
                 <CollapsibleContent>
-                  <CardContent className="p-4 pt-0">
-                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                       <div>
-                        <Label htmlFor="filterYear" className="text-gray-300">
-                          Жил
+                        <Label htmlFor="filterDay" className="text-gray-300">
+                          Огноо
+                        </Label>
+                        <Input
+                          id="filterDay"
+                          type="date"
+                          value={reportFilterDay}
+                          onChange={(e) => setReportFilterDay(e.target.value)}
+                          className="bg-gray-800 text-white border-gray-700"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="filterTime" className="text-gray-300">
+                          Цаг
                         </Label>
                         <select
-                          id="filterYear"
-                          value={reportFilterYear}
-                          onChange={(e) => setReportFilterYear(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-800 text-white"
+                          id="filterTime"
+                          value={reportFilterTime}
+                          onChange={(e) => setReportFilterTime(e.target.value)}
+                          className="w-full px-3 py-2 bg-gray-800 text-white border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >
-                          <option value="">Бүх жил</option>
-                          {getReportAvailableYears().map((year) => (
-                            <option key={year} value={year.toString()}>
-                              {year}
+                          <option value="">Бүх цаг</option>
+                          {Array.from({ length: 24 }, (_, i) => (
+                            <option key={i} value={i.toString().padStart(2, "0")}>
+                              {i.toString().padStart(2, "0")}:00
                             </option>
                           ))}
                         </select>
                       </div>
-
-                      <div>
-                        <Label htmlFor="filterMonth" className="text-gray-300">
-                          Сар
-                        </Label>
-                        <select
-                          id="filterMonth"
-                          value={reportFilterMonth}
-                          onChange={(e) => setReportFilterMonth(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-800 text-white"
-                        >
-                          <option value="">Бүх сар</option>
-                          {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
-                            <option key={month} value={month.toString().padStart(2, "0")}>
-                              {month}-р сар
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
                       <div>
                         <Label htmlFor="filterCarNumber" className="text-gray-300">
                           Машины дугаар
@@ -2762,11 +2936,10 @@ export default function DirectorPage() {
                           type="text"
                           value={reportFilterCarNumber}
                           onChange={(e) => setReportFilterCarNumber(e.target.value)}
-                          placeholder="Машины дугаар хайх"
                           className="bg-gray-800 text-white border-gray-700"
+                          placeholder="Машины дугаар"
                         />
                       </div>
-
                       <div>
                         <Label htmlFor="filterMechanic" className="text-gray-300">
                           Засварчин
@@ -2775,22 +2948,21 @@ export default function DirectorPage() {
                           <PopoverTrigger asChild>
                             <Button
                               variant="outline"
-                              role="combobox"
                               className="w-full justify-between bg-gray-800 text-white border-gray-700 hover:bg-gray-700"
                             >
                               {reportFilterMechanic.length > 0
                                 ? `${reportFilterMechanic.length} сонгогдсон`
-                                : "Бүх засварчин"}
+                                : "Засварчин сонгох"}
                               <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                             </Button>
                           </PopoverTrigger>
-                          <PopoverContent className="w-[200px] p-0 bg-gray-900 text-white border-gray-700">
+                          <PopoverContent className="w-full p-0 bg-gray-900 border-gray-700">
                             <Command className="bg-gray-900">
                               <CommandInput
                                 placeholder="Засварчин хайх..."
-                                className="h-9 bg-gray-800 text-white border-gray-700"
+                                className="bg-gray-800 text-white border-gray-700"
                               />
-                              <CommandEmpty>Засварчин олдсонгүй.</CommandEmpty>
+                              <CommandEmpty className="text-gray-400">Засварчин олдсонгүй.</CommandEmpty>
                               <CommandGroup>
                                 <CommandList>
                                   {getAvailableMechanicNames().map((name) => (
@@ -2798,20 +2970,12 @@ export default function DirectorPage() {
                                       key={name}
                                       onSelect={() => {
                                         setReportFilterMechanic((prev) =>
-                                          prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name],
+                                          prev.includes(name) ? prev.filter((item) => item !== name) : [...prev, name],
                                         )
                                       }}
-                                      className="cursor-pointer hover:bg-gray-800"
+                                      className="text-white hover:bg-gray-800"
                                     >
-                                      <Checkbox
-                                        checked={reportFilterMechanic.includes(name)}
-                                        onCheckedChange={() => {
-                                          setReportFilterMechanic((prev) =>
-                                            prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name],
-                                          )
-                                        }}
-                                        className="mr-2 border-gray-700 data-[state=checked]:bg-blue-600 data-[state=checked]:text-white"
-                                      />
+                                      <Checkbox checked={reportFilterMechanic.includes(name)} className="mr-2" />
                                       {name}
                                     </CommandItem>
                                   ))}
@@ -2821,7 +2985,6 @@ export default function DirectorPage() {
                           </PopoverContent>
                         </Popover>
                       </div>
-
                       <div>
                         <Label htmlFor="filterPaymentStatus" className="text-gray-300">
                           Төлбөрийн төлөв
@@ -2830,7 +2993,7 @@ export default function DirectorPage() {
                           id="filterPaymentStatus"
                           value={reportFilterPaymentStatus}
                           onChange={(e) => setReportFilterPaymentStatus(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-800 text-white"
+                          className="w-full px-3 py-2 bg-gray-800 text-white border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >
                           <option value="">Бүх төлөв</option>
                           <option value="paid">Төлсөн</option>
@@ -2838,37 +3001,32 @@ export default function DirectorPage() {
                         </select>
                       </div>
                     </div>
-
-                    {/* Payment Summary */}
-                    <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
-                      <div className="bg-green-950 p-3 rounded-lg">
-                        <h3 className="font-semibold text-green-300 text-base">Бэлэн мөнгө</h3>
-                        <p className="text-xl font-bold text-green-200">₮{totalCashAmount.toLocaleString()}</p>
-                      </div>
-                      <div className="bg-blue-950 p-3 rounded-lg">
-                        <h3 className="font-semibold text-blue-300 text-base">Карт</h3>
-                        <p className="text-xl font-bold text-blue-200">₮{totalCardAmount.toLocaleString()}</p>
-                      </div>
-                      <div className="bg-purple-950 p-3 rounded-lg">
-                        <h3 className="font-semibold text-purple-300 text-base">Харилцах</h3>
-                        <p className="text-xl font-bold text-purple-200">₮{totalTransferAmount.toLocaleString()}</p>
-                      </div>
-                      <div className="bg-gray-800 p-3 rounded-lg">
-                        <h3 className="font-semibold text-gray-300 text-base">Нийт</h3>
-                        <p className="text-xl font-bold text-gray-200">
-                          ₮{(totalCashAmount + totalCardAmount + totalTransferAmount).toLocaleString()}
-                        </p>
-                      </div>
+                    <div className="flex space-x-2">
+                      <Button
+                        onClick={() => {
+                          setReportFilterDay("")
+                          setReportFilterTime("")
+                          setReportFilterCarNumber("")
+                          setReportFilterMechanic([])
+                          setReportFilterPaymentStatus("")
+                        }}
+                        variant="outline"
+                        size="sm"
+                        className="bg-gray-800 text-white border-gray-700 hover:bg-gray-700"
+                      >
+                        <X className="w-4 h-4 mr-2" />
+                        Цэвэрлэх
+                      </Button>
                     </div>
                   </CardContent>
                 </CollapsibleContent>
-              </Card>
-            </Collapsible>
+              </Collapsible>
+            </Card>
 
             {/* Records Table */}
             <Card className="bg-gray-900 text-white border-gray-700">
               <CardHeader>
-                <CardTitle className="text-white">Зогсоолын бүртгэл ({filteredReportRecords.length})</CardTitle>
+                <CardTitle className="text-white">Зогсоолын бүртгэл ({filteredReportRecords.length} бүртгэл)</CardTitle>
               </CardHeader>
               <CardContent>
                 {reportLoading ? (
@@ -2879,138 +3037,203 @@ export default function DirectorPage() {
                   <p className="text-center text-gray-500 py-8">Бүртгэл олдсонгүй</p>
                 ) : (
                   <div className="overflow-x-auto">
-                    <table className="w-full border-collapse border border-gray-700">
+                    <table className="w-full text-xs">
                       <thead>
-                        <tr className="bg-gray-800">
-                          <th className="border border-gray-700 px-1 py-0.5 text-left text-gray-300 text-xs">№</th>
-                          <th className="border border-gray-700 px-1 py-0.5 text-left text-gray-300 text-xs">
+                        <tr className="border-b border-gray-700">
+                          <th className="text-left p-1 text-gray-300 text-xs">№</th>
+                          <th
+                            className="text-left p-1 text-gray-300 cursor-pointer hover:text-white text-xs"
+                            onClick={() => handleSort("carNumber")}
+                          >
                             Машины дугаар
+                            {sortField === "carNumber" && (
+                              <span className="ml-1">{sortDirection === "asc" ? "↑" : "↓"}</span>
+                            )}
                           </th>
-                          <th className="border border-gray-700 px-1 py-0.5 text-left text-gray-300 text-xs">
+                          <th
+                            className="text-left p-1 text-gray-300 cursor-pointer hover:text-white text-xs"
+                            onClick={() => handleSort("mechanicName")}
+                          >
                             Засварчин
+                            {sortField === "mechanicName" && (
+                              <span className="ml-1">{sortDirection === "asc" ? "↑" : "↓"}</span>
+                            )}
                           </th>
-                          <th className="border border-gray-700 px-1 py-0.5 text-left text-gray-300 text-xs">
+                          <th
+                            className="text-left p-1 text-gray-300 cursor-pointer hover:text-white text-xs"
+                            onClick={() => handleSort("position")}
+                          >
+                            Үйлчилгээ
+                            {sortField === "position" && (
+                              <span className="ml-1">{sortDirection === "asc" ? "↑" : "↓"}</span>
+                            )}
+                          </th>
+                          <th
+                            className="text-left p-1 text-gray-300 cursor-pointer hover:text-white text-xs"
+                            onClick={() => handleSort("area")}
+                          >
+                            Талбай
+                            {sortField === "area" && (
+                              <span className="ml-1">{sortDirection === "asc" ? "↑" : "↓"}</span>
+                            )}
+                          </th>
+                          <th
+                            className="text-left p-1 text-gray-300 cursor-pointer hover:text-white text-xs"
+                            onClick={() => handleSort("carBrand")}
+                          >
                             Машины марк
+                            {sortField === "carBrand" && (
+                              <span className="ml-1">{sortDirection === "asc" ? "↑" : "↓"}</span>
+                            )}
                           </th>
-                          <th className="border border-gray-700 px-1 py-0.5 text-left text-gray-300 text-xs">
+                          <th
+                            className="text-left p-1 text-gray-300 cursor-pointer hover:text-white text-xs"
+                            onClick={() => handleSort("entryTime")}
+                          >
                             Орсон цаг
+                            {sortField === "entryTime" && (
+                              <span className="ml-1">{sortDirection === "asc" ? "↑" : "↓"}</span>
+                            )}
                           </th>
-                          <th className="border border-gray-700 px-1 py-0.5 text-left text-gray-300 text-xs">
+                          <th
+                            className="text-left p-1 text-gray-300 cursor-pointer hover:text-white text-xs"
+                            onClick={() => handleSort("exitTime")}
+                          >
                             Гарсан цаг
+                            {sortField === "exitTime" && (
+                              <span className="ml-1">{sortDirection === "asc" ? "↑" : "↓"}</span>
+                            )}
                           </th>
-                          <th className="border border-gray-700 px-1 py-0.5 text-left text-gray-300 text-xs">
-                            Зогссон хугацаа
+                          <th className="text-left p-1 text-gray-300 text-xs">Зогссон хугацаа</th>
+                          <th
+                            className="text-left p-1 text-gray-300 cursor-pointer hover:text-white text-xs"
+                            onClick={() => handleSort("amount")}
+                          >
+                            Төлбөр (₮)
+                            {sortField === "amount" && (
+                              <span className="ml-1">{sortDirection === "asc" ? "↑" : "↓"}</span>
+                            )}
                           </th>
-                          <th className="border border-gray-700 px-1 py-0.5 text-left text-gray-300 text-xs">Төлбөр</th>
-                          <th className="border border-gray-700 px-1 py-0.5 text-left text-gray-300 text-xs">
+                          <th
+                            className="text-left p-1 text-gray-300 cursor-pointer hover:text-white text-xs"
+                            onClick={() => handleSort("paymentStatus")}
+                          >
                             Төлбөрийн төлөв
+                            {sortField === "paymentStatus" && (
+                              <span className="ml-1">{sortDirection === "asc" ? "↑" : "↓"}</span>
+                            )}
                           </th>
-                          <th className="border border-gray-700 px-1 py-0.5 text-left text-gray-300 text-xs">Зураг</th>
-                          <th className="border border-gray-700 px-1 py-0.5 text-left text-gray-300 text-xs">Үйлдэл</th>
-                          <th className="border border-gray-700 px-1 py-0.5 text-left text-gray-300 text-xs">Устгах</th>
+                          <th className="text-left p-1 text-gray-300 text-xs">Зураг</th>
+                          <th className="text-left p-1 text-gray-300 text-xs">Үйлдэл</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {filteredReportRecords.map((record, index) => (
-                          <tr key={record.id} className="hover:bg-gray-800">
-                            <td className="border border-gray-700 px-1 py-0.5 text-gray-200 text-xs">{index + 1}</td>
-                            <td className="border border-gray-700 px-1 py-0.5 font-normal text-xs text-gray-200">
-                              {record.carNumber}
-                            </td>
-                            <td className="border border-gray-700 px-1 py-0.5 text-gray-200 text-xs">
-                              {record.mechanicName || record.driverName || "-"}
-                            </td>
-                            <td className="border border-gray-700 px-1 py-0.5 text-gray-200 text-xs">
-                              {record.carBrand || record.parkingArea || "-"}
-                            </td>
-                            <td className="border border-gray-700 px-1 py-0.5 text-gray-200 text-xs">
-                              {record.entryTime || "-"}
-                            </td>
-                            <td className="border border-gray-700 px-1 py-0.5 text-gray-200 text-xs">
-                              {record.exitTime || "-"}
-                            </td>
-                            <td className="border border-gray-700 px-1 py-0.5 text-gray-200 text-xs">
-                              {record.parkingDuration || "-"}
-                            </td>
-                            <td className="border border-gray-700 px-1 py-0.5 text-gray-200 text-xs">
-                              <div className="space-y-0.5">
-                                <div className="font-medium text-xs text-white">
-                                  ₮{calculateParkingFeeForReport(record).toLocaleString()}
-                                </div>
-                                {record.paymentStatus === "paid" && (
-                                  <div className="text-xs text-gray-400">
-                                    {record.cashAmount > 0 && <div>Бэлэн: ₮{record.cashAmount.toLocaleString()}</div>}
-                                    {record.cardAmount > 0 && <div>Карт: ₮{record.cardAmount.toLocaleString()}</div>}
-                                    {record.transferAmount > 0 && (
-                                      <div>Харилцах: ₮{record.transferAmount.toLocaleString()}</div>
+                        {Object.keys(groupRecordsByDate(getSortedRecords())).map((dateKey) => (
+                          <React.Fragment key={dateKey}>
+                            <tr className="bg-gray-800">
+                              <td colSpan={13} className="p-2 text-center font-semibold text-lg text-white">
+                                {dateKey}
+                              </td>
+                            </tr>
+                            {groupRecordsByDate(getSortedRecords())[dateKey].map((record, index) => {
+                              const employee = employees.find(
+                                (emp) => emp.name === (record.mechanicName || record.driverName),
+                              )
+                              return (
+                                <tr key={record.id} className="border-b border-gray-800 hover:bg-gray-800">
+                                  <td className="p-1 text-gray-300 text-xs">{index + 1}</td>
+                                  <td className="p-1 text-white font-medium text-xs">{record.carNumber}</td>
+                                  <td className="p-1 text-gray-300 text-xs">
+                                    {record.mechanicName || record.driverName || "-"}
+                                  </td>
+                                  <td className="p-1 text-gray-300 text-xs">{employee?.position || "-"}</td>
+                                  <td className="p-1 text-gray-300 text-xs">
+                                    {getAreaNameInMongolian(record.parkingArea || record.carBrand)}
+                                  </td>
+                                  <td className="p-1 text-gray-300 text-xs">{record.carBrand || "-"}</td>
+                                  <td className="p-1 text-gray-300 text-xs">{record.entryTime || "-"}</td>
+                                  <td className="p-1 text-gray-300 text-xs">{record.exitTime || "-"}</td>
+                                  <td className="p-1 text-gray-300 text-xs">
+                                    {record.parkingDuration ? `${record.parkingDuration} ц` : "-"}
+                                  </td>
+                                  <td className="p-1 text-white font-medium text-xs">
+                                    <div>₮{calculateParkingFeeForReport(record).toLocaleString()}</div>
+                                    {record.cashAmount > 0 && (
+                                      <div className="text-gray-400 text-xs">
+                                        Бэлэн: ₮{record.cashAmount.toLocaleString()}
+                                      </div>
                                     )}
-                                  </div>
-                                )}
-                              </div>
-                            </td>
-                            <td className="border border-gray-700 px-1 py-0.5">
-                              <div className="flex items-center space-x-1">
-                                <Badge
-                                  variant={record.paymentStatus === "paid" ? "default" : "secondary"}
-                                  className={
-                                    record.paymentStatus === "paid"
-                                      ? "bg-green-700 text-white text-xs"
-                                      : "bg-gray-700 text-gray-300 text-xs"
-                                  }
-                                >
-                                  {record.paymentStatus === "paid" ? "Төлсөн" : "Төлөөгүй"}
-                                </Badge>
-                                <Button
-                                  size="xs" // Changed to xs for smaller button
-                                  variant="outline"
-                                  onClick={() => handlePaymentStatusUpdate(record)}
-                                  className="bg-gray-800 text-white border-gray-700 hover:bg-gray-700 text-xs"
-                                >
-                                  Төлбөр
-                                </Button>
-                              </div>
-                            </td>
-                            <td className="border border-gray-700 px-1 py-0.5">
-                              {record.images && record.images.length > 0 ? (
-                                <Button
-                                  size="xs" // Changed to xs for smaller button
-                                  variant="outline"
-                                  onClick={() => openImageViewer(record.images, 0)}
-                                  className="bg-gray-800 text-white border-gray-700 hover:bg-gray-700 text-xs"
-                                >
-                                  <Eye className="w-3 h-3 mr-0.5" /> {/* Smaller icon */}
-                                  {record.images.length}
-                                </Button>
-                              ) : (
-                                <span className="text-gray-500 text-xs">Байхгүй</span>
-                              )}
-                            </td>
-                            <td className="border border-gray-700 px-1 py-0.5">
-                              <Button
-                                size="xs" // Changed to xs for smaller button
-                                variant="outline"
-                                onClick={() => handleEditRecord(record)}
-                                className="bg-gray-800 text-white border-gray-700 hover:bg-gray-700"
-                              >
-                                <Edit className="w-3 h-3" /> {/* Smaller icon */}
-                              </Button>
-                            </td>
-                            <td className="border border-gray-700 px-1 py-0.5">
-                              <Button
-                                size="xs"
-                                variant="destructive"
-                                onClick={() => handleDeleteRecord(record.id, record.carNumber)}
-                                disabled={deleteRecordLoading}
-                                className="bg-red-600 text-white hover:bg-red-700"
-                              >
-                                {deleteRecordLoading ? (
-                                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
-                                ) : (
-                                  <Trash2 className="w-3 h-3" />
-                                )}
-                              </Button>
-                            </td>
-                          </tr>
+                                    {record.cardAmount > 0 && (
+                                      <div className="text-gray-400 text-xs">
+                                        Карт: ₮{record.cardAmount.toLocaleString()}
+                                      </div>
+                                    )}
+                                    {record.transferAmount > 0 && (
+                                      <div className="text-gray-400 text-xs">
+                                        Харилцах: ₮{record.transferAmount.toLocaleString()}
+                                      </div>
+                                    )}
+                                  </td>
+                                  <td className="p-1">
+                                    <Badge
+                                      variant={record.paymentStatus === "paid" ? "default" : "secondary"}
+                                      className={
+                                        record.paymentStatus === "paid"
+                                          ? "bg-green-700 text-white text-xs px-1 py-0"
+                                          : "bg-red-700 text-white text-xs px-1 py-0"
+                                      }
+                                    >
+                                      {record.paymentStatus === "paid" ? "Төлсөн" : "Төлөөгүй"}
+                                    </Badge>
+                                  </td>
+                                  <td className="p-1">
+                                    {record.images && record.images.length > 0 ? (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => openImageViewer(record.images, 0)}
+                                        className="text-blue-400 hover:text-blue-300 hover:bg-gray-800 text-xs p-1 h-6"
+                                      >
+                                        <Eye className="w-3 h-3 mr-1" />
+                                        {record.images.length}
+                                      </Button>
+                                    ) : (
+                                      <span className="text-gray-500 text-xs">-</span>
+                                    )}
+                                  </td>
+                                  <td className="p-1">
+                                    <div className="flex space-x-1">
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleEditRecord(record)}
+                                        className="text-blue-400 hover:text-blue-300 hover:bg-gray-800 p-1 h-6 w-6"
+                                      >
+                                        <Edit className="w-3 h-3" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handlePaymentStatusUpdate(record)}
+                                        className="text-green-400 hover:text-green-300 hover:bg-gray-800 p-1 h-6 w-6"
+                                      >
+                                        <TrendingUp className="w-3 h-3" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleDeleteRecord(record.id, record.carNumber)}
+                                        className="text-red-400 hover:text-red-300 hover:bg-gray-800 p-1 h-6 w-6"
+                                        disabled={deleteRecordLoading}
+                                      >
+                                        <Trash2 className="w-3 h-3" />
+                                      </Button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              )
+                            })}
+                          </React.Fragment>
                         ))}
                       </tbody>
                     </table>
@@ -3024,71 +3247,71 @@ export default function DirectorPage() {
 
       {/* Add Employee Dialog */}
       <Dialog open={showEmployeeDialog} onOpenChange={setShowEmployeeDialog}>
-        <DialogContent className="max-w-md bg-gray-900 text-white border-gray-700">
+        <DialogContent className="bg-gray-900 text-white border-gray-700">
           <DialogHeader>
             <DialogTitle className="text-white">Ажилчин нэмэх</DialogTitle>
             <DialogDescription className="text-gray-400">Шинэ ажилчны мэдээллийг оруулна уу</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleAddEmployee} className="space-y-4">
-            <div>
-              <Label htmlFor="employeeName" className="text-gray-300">
-                Нэр *
-              </Label>
-              <Input
-                id="employeeName"
-                type="text"
-                value={newEmployee.name}
-                onChange={(e) => setNewEmployee({ ...newEmployee, name: e.target.value })}
-                placeholder="Ажилчны нэр"
-                required
-                className="bg-gray-800 text-white border-gray-700"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="employeeName" className="text-gray-300">
+                  Нэр
+                </Label>
+                <Input
+                  id="employeeName"
+                  type="text"
+                  value={newEmployee.name}
+                  onChange={(e) => setNewEmployee({ ...newEmployee, name: e.target.value })}
+                  className="bg-gray-800 text-white border-gray-700"
+                  placeholder="Ажилчны нэр"
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="employeePosition" className="text-gray-300">
+                  Үйлчилгээ
+                </Label>
+                <Input
+                  id="employeePosition"
+                  type="text"
+                  value={newEmployee.position}
+                  onChange={(e) => setNewEmployee({ ...newEmployee, position: e.target.value })}
+                  className="bg-gray-800 text-white border-gray-700"
+                  placeholder="Үйлчилгээ"
+                />
+              </div>
             </div>
-
-            <div>
-              <Label htmlFor="employeePosition" className="text-gray-300">
-                Албан тушаал
-              </Label>
-              <Input
-                id="employeePosition"
-                type="text"
-                value={newEmployee.position}
-                onChange={(e) => setNewEmployee({ ...newEmployee, position: e.target.value })}
-                placeholder="Албан тушаал"
-                className="bg-gray-800 text-white border-gray-700"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="employeePhone" className="text-gray-300">
+                  Утасны дугаар
+                </Label>
+                <Input
+                  id="employeePhone"
+                  type="tel"
+                  value={newEmployee.phone}
+                  onChange={(e) => setNewEmployee({ ...newEmployee, phone: e.target.value })}
+                  className="bg-gray-800 text-white border-gray-700"
+                  placeholder="Утасны дугаар"
+                />
+              </div>
+              <div>
+                <Label htmlFor="employeeStartDate" className="text-gray-300">
+                  Ажилд орсон огноо
+                </Label>
+                <Input
+                  id="employeeStartDate"
+                  type="date"
+                  value={newEmployee.startDate}
+                  onChange={(e) => setNewEmployee({ ...newEmployee, startDate: e.target.value })}
+                  className="bg-gray-800 text-white border-gray-700"
+                />
+              </div>
             </div>
-
-            <div>
-              <Label htmlFor="employeePhone" className="text-gray-300">
-                Утасны дугаар
-              </Label>
-              <Input
-                id="employeePhone"
-                type="tel"
-                value={newEmployee.phone}
-                onChange={(e) => setNewEmployee({ ...newEmployee, phone: e.target.value })}
-                placeholder="99112233"
-                className="bg-gray-800 text-white border-gray-700"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="employeeStartDate" className="text-gray-300">
-                Ажилд орсон огноо
-              </Label>
-              <Input
-                id="employeeStartDate"
-                type="date"
-                value={newEmployee.startDate}
-                onChange={(e) => setNewEmployee({ ...newEmployee, startDate: e.target.value })}
-                className="bg-gray-800 text-white border-gray-700"
-              />
-            </div>
-
             <div>
               <Label htmlFor="employeeImage" className="text-gray-300">
-                Зураг
+                Профайл зураг
               </Label>
               <Input
                 id="employeeImage"
@@ -3107,7 +3330,6 @@ export default function DirectorPage() {
                 </div>
               )}
             </div>
-
             <DialogFooter>
               <Button
                 type="button"
@@ -3118,58 +3340,65 @@ export default function DirectorPage() {
                 Цуцлах
               </Button>
               <Button type="submit" disabled={employeeLoading} className="bg-blue-600 text-white hover:bg-blue-700">
-                {employeeLoading ? "Нэмж байна..." : "Нэмэх"}
+                {employeeLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Нэмж байна...
+                  </>
+                ) : (
+                  "Ажилчин нэмэх"
+                )}
               </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
-      {/* Edit Dialog (for drivers, managers, directors, and employees) */}
+      {/* Edit User Dialog */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="max-w-md bg-gray-900 text-white border-gray-700">
+        <DialogContent className="bg-gray-900 text-white border-gray-700">
           <DialogHeader>
             <DialogTitle className="text-white">
               {editingUser?.role === "manager"
-                ? "Менежер"
+                ? "Менежер засах"
                 : editingUser?.role === "driver"
-                  ? "Бүртгэгч"
+                  ? "Бүртгэгч засах"
                   : editingUser?.role === "director"
-                    ? "Захирал"
-                    : "Ажилчин"}{" "}
-              засах
+                    ? "Захирал засах"
+                    : "Ажилчин засах"}
             </DialogTitle>
-            <DialogDescription className="text-gray-400">Мэдээллийг шинэчлэх</DialogDescription>
+            <DialogDescription className="text-gray-400">Хэрэглэгчийн мэдээллийг шинэчлэх</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
-              <Label htmlFor="editName" className="text-gray-300">
-                Нэр
-              </Label>
-              <Input
-                id="editName"
-                type="text"
-                value={editUserData.name}
-                onChange={(e) => setEditUserData({ ...editUserData, name: e.target.value })}
-                placeholder="Нэр"
-                className="bg-gray-800 text-white border-gray-700"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="editName" className="text-gray-300">
+                  Нэр
+                </Label>
+                <Input
+                  id="editName"
+                  type="text"
+                  value={editUserData.name}
+                  onChange={(e) => setEditUserData({ ...editUserData, name: e.target.value })}
+                  className="bg-gray-800 text-white border-gray-700"
+                  placeholder="Нэр"
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="editPhone" className="text-gray-300">
+                  Утасны дугаар
+                </Label>
+                <Input
+                  id="editPhone"
+                  type="tel"
+                  value={editUserData.phone}
+                  onChange={(e) => setEditUserData({ ...editUserData, phone: e.target.value })}
+                  className="bg-gray-800 text-white border-gray-700"
+                  placeholder="Утасны дугаар"
+                />
+              </div>
             </div>
-
-            <div>
-              <Label htmlFor="editPhone" className="text-gray-300">
-                Утасны дугаар
-              </Label>
-              <Input
-                id="editPhone"
-                type="tel"
-                value={editUserData.phone}
-                onChange={(e) => setEditUserData({ ...editUserData, phone: e.target.value })}
-                placeholder="Утасны дугаар"
-                className="bg-gray-800 text-white border-gray-700"
-              />
-            </div>
-
             <div>
               <Label htmlFor="editEmail" className="text-gray-300">
                 И-мэйл хаяг
@@ -3179,8 +3408,9 @@ export default function DirectorPage() {
                 type="email"
                 value={editUserData.email}
                 onChange={(e) => setEditUserData({ ...editUserData, email: e.target.value })}
-                placeholder="И-мэйл хаяг"
                 className="bg-gray-800 text-white border-gray-700"
+                placeholder="И-мэйл хаяг"
+                required
               />
             </div>
           </div>
@@ -3197,7 +3427,14 @@ export default function DirectorPage() {
               disabled={editLoading}
               className="bg-blue-600 text-white hover:bg-blue-700"
             >
-              {editLoading ? "Хадгалж байна..." : "Хадгалах"}
+              {editLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Хадгалж байна...
+                </>
+              ) : (
+                "Хадгалах"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -3205,40 +3442,41 @@ export default function DirectorPage() {
 
       {/* Profile Dialog */}
       <Dialog open={showProfileDialog} onOpenChange={setShowProfileDialog}>
-        <DialogContent className="max-w-md bg-gray-900 text-white border-gray-700 max-h-[80vh] overflow-y-auto">
+        <DialogContent className="bg-gray-900 text-white border-gray-700">
           <DialogHeader>
             <DialogTitle className="text-white">Профайл засах</DialogTitle>
             <DialogDescription className="text-gray-400">Өөрийн мэдээллийг шинэчлэх</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
-              <Label htmlFor="profileName" className="text-gray-300">
-                Нэр
-              </Label>
-              <Input
-                id="profileName"
-                type="text"
-                value={profileData.name}
-                onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
-                placeholder="Нэр"
-                className="bg-gray-800 text-white border-gray-700"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="profileName" className="text-gray-300">
+                  Нэр
+                </Label>
+                <Input
+                  id="profileName"
+                  type="text"
+                  value={profileData.name}
+                  onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
+                  className="bg-gray-800 text-white border-gray-700"
+                  placeholder="Нэр"
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="profilePhone" className="text-gray-300">
+                  Утасны дугаар
+                </Label>
+                <Input
+                  id="profilePhone"
+                  type="tel"
+                  value={profileData.phone}
+                  onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
+                  className="bg-gray-800 text-white border-gray-700"
+                  placeholder="Утасны дугаар"
+                />
+              </div>
             </div>
-
-            <div>
-              <Label htmlFor="profilePhone" className="text-gray-300">
-                Утасны дугаар
-              </Label>
-              <Input
-                id="profilePhone"
-                type="tel"
-                value={profileData.phone}
-                onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
-                placeholder="Утасны дугаар"
-                className="bg-gray-800 text-white border-gray-700"
-              />
-            </div>
-
             <div>
               <Label htmlFor="profileEmail" className="text-gray-300">
                 И-мэйл хаяг
@@ -3248,11 +3486,11 @@ export default function DirectorPage() {
                 type="email"
                 value={profileData.email}
                 onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
-                placeholder="И-мэйл хаяг"
                 className="bg-gray-800 text-white border-gray-700"
+                placeholder="И-мэйл хаяг"
+                required
               />
             </div>
-
             <div>
               <Label htmlFor="profileImage" className="text-gray-300">
                 Профайл зураг
@@ -3274,76 +3512,6 @@ export default function DirectorPage() {
                 </div>
               )}
             </div>
-
-            {/* Password Change Section */}
-            <div className="border-t border-gray-700 pt-4">
-              <h4 className="font-medium mb-2 text-white">Нууц үг солих</h4>
-              <div className="space-y-3">
-                <div>
-                  <Label htmlFor="currentPassword" className="text-gray-300">
-                    Одоогийн нууц үг
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      id="currentPassword"
-                      type={showPassword ? "text" : "password"}
-                      value={passwordData.currentPassword}
-                      onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-                      placeholder="Одоогийн нууц үг"
-                      className="bg-gray-800 text-white border-gray-700"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-gray-400 hover:text-white"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="newPassword" className="text-gray-300">
-                    Шинэ нууц үг
-                  </Label>
-                  <Input
-                    id="newPassword"
-                    type="password"
-                    value={passwordData.newPassword}
-                    onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                    placeholder="Шинэ нууц үг"
-                    className="bg-gray-800 text-white border-gray-700"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="confirmPassword" className="text-gray-300">
-                    Шинэ нууц үг давтах
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      id="confirmPassword"
-                      type={showConfirmPassword ? "text" : "password"}
-                      value={passwordData.confirmPassword}
-                      onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                      placeholder="Шинэ нууц үг давтах"
-                      className="bg-gray-800 text-white border-gray-700"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-gray-400 hover:text-white"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    >
-                      {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
           <DialogFooter>
             <Button
@@ -3358,7 +3526,14 @@ export default function DirectorPage() {
               disabled={profileLoading}
               className="bg-blue-600 text-white hover:bg-blue-700"
             >
-              {profileLoading ? "Хадгалж байна..." : "Хадгалах"}
+              {profileLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Хадгалж байна...
+                </>
+              ) : (
+                "Хадгалах"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -3366,10 +3541,10 @@ export default function DirectorPage() {
 
       {/* Site Configuration Dialog */}
       <Dialog open={showSiteDialog} onOpenChange={setShowSiteDialog}>
-        <DialogContent className="max-w-md bg-gray-900 text-white border-gray-700">
+        <DialogContent className="bg-gray-900 text-white border-gray-700">
           <DialogHeader>
             <DialogTitle className="text-white">Сайтын тохиргоо</DialogTitle>
-            <DialogDescription className="text-gray-400">Сайтын үндсэн мэдээллийг тохируулах</DialogDescription>
+            <DialogDescription className="text-gray-400">Сайтын ерөнхий тохиргоог өөрчлөх</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
@@ -3381,11 +3556,11 @@ export default function DirectorPage() {
                 type="text"
                 value={siteConfig.siteName}
                 onChange={(e) => setSiteConfig({ ...siteConfig, siteName: e.target.value })}
-                placeholder="Сайтын нэр"
                 className="bg-gray-800 text-white border-gray-700"
+                placeholder="Сайтын нэр"
+                required
               />
             </div>
-
             <div>
               <Label htmlFor="siteLogo" className="text-gray-300">
                 Сайтын лого
@@ -3407,7 +3582,6 @@ export default function DirectorPage() {
                 </div>
               )}
             </div>
-
             <div>
               <Label htmlFor="siteBackground" className="text-gray-300">
                 Арын зураг
@@ -3424,7 +3598,7 @@ export default function DirectorPage() {
                   <img
                     src={siteConfig.siteBackground || "/placeholder.svg"}
                     alt="Background Preview"
-                    className="w-full h-20 object-cover rounded"
+                    className="w-32 h-20 object-cover rounded"
                   />
                 </div>
               )}
@@ -3443,7 +3617,14 @@ export default function DirectorPage() {
               disabled={siteLoading}
               className="bg-blue-600 text-white hover:bg-blue-700"
             >
-              {siteLoading ? "Хадгалж байна..." : "Хадгалах"}
+              {siteLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Хадгалж байна...
+                </>
+              ) : (
+                "Хадгалах"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -3451,19 +3632,18 @@ export default function DirectorPage() {
 
       {/* Pricing Configuration Dialog */}
       <Dialog open={showPricingDialog} onOpenChange={setShowPricingDialog}>
-        <DialogContent className="max-w-lg bg-gray-900 text-white border-gray-700">
+        <DialogContent className="bg-gray-900 text-white border-gray-700">
           <DialogHeader>
             <DialogTitle className="text-white">Үнийн тохиргоо</DialogTitle>
-            <DialogDescription className="text-gray-400">Зогсоолын үнийн мэдээллийг тохируулах</DialogDescription>
+            <DialogDescription className="text-gray-400">Зогсоолын үнийн тохиргоог өөрчлөх</DialogDescription>
           </DialogHeader>
           <div className="space-y-6">
-            {/* Leather Zone */}
-            <div className="space-y-3">
-              <h4 className="font-medium text-lg text-white">Тен талбай</h4>
+            <div>
+              <h3 className="text-lg font-semibold text-white mb-3">Тен</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="leatherFirst" className="text-gray-300">
-                    Эхний цаг (₮)
+                    Эхний цагийн үнэ (₮)
                   </Label>
                   <Input
                     id="leatherFirst"
@@ -3475,14 +3655,14 @@ export default function DirectorPage() {
                         leather: { ...pricingConfig.leather, firstHour: Number(e.target.value) },
                       })
                     }
-                    placeholder="0"
-                    min="0"
                     className="bg-gray-800 text-white border-gray-700"
+                    min="0"
+                    required
                   />
                 </div>
                 <div>
                   <Label htmlFor="leatherSubsequent" className="text-gray-300">
-                    Дараагийн цаг (₮)
+                    Дараагийн цагийн үнэ (₮)
                   </Label>
                   <Input
                     id="leatherSubsequent"
@@ -3494,21 +3674,20 @@ export default function DirectorPage() {
                         leather: { ...pricingConfig.leather, subsequentHour: Number(e.target.value) },
                       })
                     }
-                    placeholder="0"
-                    min="0"
                     className="bg-gray-800 text-white border-gray-700"
+                    min="0"
+                    required
                   />
                 </div>
               </div>
             </div>
 
-            {/* Spare Zone */}
-            <div className="space-y-3">
-              <h4 className="font-medium text-lg text-white">Сафари талбай</h4>
+            <div>
+              <h3 className="text-lg font-semibold text-white mb-3">Сафари</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="spareFirst" className="text-gray-300">
-                    Эхний цаг (₮)
+                    Эхний цагийн үнэ (₮)
                   </Label>
                   <Input
                     id="spareFirst"
@@ -3520,14 +3699,14 @@ export default function DirectorPage() {
                         spare: { ...pricingConfig.spare, firstHour: Number(e.target.value) },
                       })
                     }
-                    placeholder="0"
-                    min="0"
                     className="bg-gray-800 text-white border-gray-700"
+                    min="0"
+                    required
                   />
                 </div>
                 <div>
                   <Label htmlFor="spareSubsequent" className="text-gray-300">
-                    Дараагийн цаг (₮)
+                    Дараагийн цагийн үнэ (₮)
                   </Label>
                   <Input
                     id="spareSubsequent"
@@ -3539,21 +3718,20 @@ export default function DirectorPage() {
                         spare: { ...pricingConfig.spare, subsequentHour: Number(e.target.value) },
                       })
                     }
-                    placeholder="0"
-                    min="0"
                     className="bg-gray-800 text-white border-gray-700"
+                    min="0"
+                    required
                   />
                 </div>
               </div>
             </div>
 
-            {/* General Zone */}
-            <div className="space-y-3">
-              <h4 className="font-medium text-lg text-white">Ерөнхий талбай</h4>
+            <div>
+              <h3 className="text-lg font-semibold text-white mb-3">Талбай</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="generalFirst" className="text-gray-300">
-                    Эхний цаг (₮)
+                    Эхний цагийн үнэ (₮)
                   </Label>
                   <Input
                     id="generalFirst"
@@ -3565,14 +3743,14 @@ export default function DirectorPage() {
                         general: { ...pricingConfig.general, firstHour: Number(e.target.value) },
                       })
                     }
-                    placeholder="0"
-                    min="0"
                     className="bg-gray-800 text-white border-gray-700"
+                    min="0"
+                    required
                   />
                 </div>
                 <div>
                   <Label htmlFor="generalSubsequent" className="text-gray-300">
-                    Дараагийн цаг (₮)
+                    Дараагийн цагийн үнэ (₮)
                   </Label>
                   <Input
                     id="generalSubsequent"
@@ -3584,9 +3762,9 @@ export default function DirectorPage() {
                         general: { ...pricingConfig.general, subsequentHour: Number(e.target.value) },
                       })
                     }
-                    placeholder="0"
-                    min="0"
                     className="bg-gray-800 text-white border-gray-700"
+                    min="0"
+                    required
                   />
                 </div>
               </div>
@@ -3605,97 +3783,14 @@ export default function DirectorPage() {
               disabled={pricingLoading}
               className="bg-blue-600 text-white hover:bg-blue-700"
             >
-              {pricingLoading ? "Хадгалж байна..." : "Хадгалах"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Payment Status Dialog */}
-      <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
-        <DialogContent className="max-w-md bg-gray-900 text-white border-gray-700">
-          <DialogHeader>
-            <DialogTitle className="text-white">Төлбөрийн мэдээлэл</DialogTitle>
-            <DialogDescription className="text-gray-400">Төлбөрийн дүн болон хэлбэрийг оруулна уу</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="cashAmount" className="text-gray-300">
-                Бэлэн мөнгө (₮)
-              </Label>
-              <Input
-                id="cashAmount"
-                type="number"
-                value={cashAmountInput}
-                onChange={(e) => setCashAmountInput(Number(e.target.value) || 0)}
-                placeholder="0"
-                min="0"
-                className="bg-gray-800 text-white border-gray-700"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="cardAmount" className="text-gray-300">
-                Карт (₮)
-              </Label>
-              <Input
-                id="cardAmount"
-                type="number"
-                value={cardAmountInput}
-                onChange={(e) => setCardAmountInput(Number(e.target.value) || 0)}
-                placeholder="0"
-                min="0"
-                className="bg-gray-800 text-white border-gray-700"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="transferAmount" className="text-gray-300">
-                Харилцах (₮)
-              </Label>
-              <Input
-                id="transferAmount"
-                type="number"
-                value={transferAmountInput}
-                onChange={(e) => setTransferAmountInput(Number(e.target.value) || 0)}
-                placeholder="0"
-                min="0"
-                className="bg-gray-800 text-white border-gray-700"
-              />
-            </div>
-
-            <div className="bg-gray-800 p-3 rounded-md">
-              <div className="flex justify-between items-center">
-                <span className="font-medium text-gray-300">Төлөх дүн:</span>
-                <span className="text-lg font-bold text-white">
-                  ₮{(initialAmountToPay - (cashAmountInput + cardAmountInput + transferAmountInput)).toLocaleString()}
-                </span>
-              </div>
-            </div>
-
-            <div className="bg-gray-800 p-3 rounded-md">
-              <div className="flex justify-between items-center">
-                <span className="font-medium text-gray-300">Нийт дүн:</span>
-                <span className="text-lg font-bold text-white">
-                  ₮{(cashAmountInput + cardAmountInput + transferAmountInput).toLocaleString()}
-                </span>
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowPaymentDialog(false)}
-              className="bg-gray-800 text-white border-gray-700 hover:bg-gray-700"
-            >
-              Цуцлах
-            </Button>
-            <Button
-              onClick={handleSavePaymentStatus}
-              disabled={paymentLoading}
-              className="bg-blue-600 text-white hover:bg-blue-700"
-            >
-              {paymentLoading ? "Хадгалж байна..." : "Хадгалах"}
+              {pricingLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Хадгалж байна...
+                </>
+              ) : (
+                "Хадгалах"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -3703,57 +3798,57 @@ export default function DirectorPage() {
 
       {/* Date Range Export Dialog */}
       <Dialog open={showDateRangeDialog} onOpenChange={setShowDateRangeDialog}>
-        <DialogContent className="max-w-md bg-gray-900 text-white border-gray-700">
+        <DialogContent className="bg-gray-900 text-white border-gray-700">
           <DialogHeader>
-            <DialogTitle className="text-white">Огнооны хүрээгээр татах</DialogTitle>
+            <DialogTitle className="text-white">Хугацаагаар Excel татах</DialogTitle>
             <DialogDescription className="text-gray-400">
               Тодорхой хугацааны бүртгэлийг Excel файлаар татах
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
-              <Label htmlFor="dateRangeStart" className="text-gray-300">
-                Эхлэх огноо
-              </Label>
-              <Input
-                id="dateRangeStart"
-                type="date"
-                value={dateRangeStart}
-                onChange={(e) => setDateRangeStart(e.target.value)}
-                className="bg-gray-800 text-white border-gray-700"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="dateRangeStart" className="text-gray-300">
+                  Эхлэх огноо
+                </Label>
+                <Input
+                  id="dateRangeStart"
+                  type="date"
+                  value={dateRangeStart}
+                  onChange={(e) => setDateRangeStart(e.target.value)}
+                  className="bg-gray-800 text-white border-gray-700"
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="dateRangeEnd" className="text-gray-300">
+                  Дуусах огноо
+                </Label>
+                <Input
+                  id="dateRangeEnd"
+                  type="date"
+                  value={dateRangeEnd}
+                  onChange={(e) => setDateRangeEnd(e.target.value)}
+                  className="bg-gray-800 text-white border-gray-700"
+                  required
+                />
+              </div>
             </div>
-
-            <div>
-              <Label htmlFor="dateRangeEnd" className="text-gray-300">
-                Дуусах огноо
-              </Label>
-              <Input
-                id="dateRangeEnd"
-                type="date"
-                value={dateRangeEnd}
-                onChange={(e) => setDateRangeEnd(e.target.value)}
-                className="bg-gray-800 text-white border-gray-700"
-              />
-            </div>
-
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="deleteAfterExport"
                 checked={deleteAfterExport}
                 onCheckedChange={(checked) => setDeleteAfterExport(checked as boolean)}
-                className="border-gray-700 data-[state=checked]:bg-blue-600 data-[state=checked]:text-white"
               />
-              <Label htmlFor="deleteAfterExport" className="text-sm text-gray-300">
-                Татсаны дараа бүртгэлийг устгах
+              <Label htmlFor="deleteAfterExport" className="text-gray-300">
+                Татсаны дараа бүртгэлийг өгөгдлийн сангаас устгах
               </Label>
             </div>
-
             {deleteAfterExport && (
-              <div className="bg-red-950 border border-red-700 rounded-md p-3">
-                <p className="text-sm text-red-300">
+              <div className="bg-red-900 border border-red-700 rounded-md p-3">
+                <p className="text-red-300 text-sm">
                   <strong>Анхааруулга:</strong> Энэ үйлдэл нь сонгосон хугацааны бүх бүртгэлийг өгөгдлийн сангаас
-                  бүрмөсөн устгана. Энэ үйлдлийг буцаах боломжгүй.
+                  бүрмөсөн устгана. Энэ үйлдлийг буцаах боломжгүй!
                 </p>
               </div>
             )}
@@ -3771,7 +3866,110 @@ export default function DirectorPage() {
               disabled={exportLoading}
               className="bg-blue-600 text-white hover:bg-blue-700"
             >
-              {exportLoading ? "Татаж байна..." : "Татах"}
+              {exportLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Татаж байна...
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4 mr-2" />
+                  Excel татах
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Payment Status Dialog */}
+      <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
+        <DialogContent className="bg-gray-900 text-white border-gray-700">
+          <DialogHeader>
+            <DialogTitle className="text-white">Төлбөрийн мэдээлэл шинэчлэх</DialogTitle>
+            <DialogDescription className="text-gray-400">
+              {selectedRecord?.carNumber} дугаартай машины төлбөрийн мэдээллийг шинэчлэх
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="totalAmount" className="text-gray-300">
+                Нийт төлбөр
+              </Label>
+              <Input
+                id="totalAmount"
+                type="text"
+                value={`₮${initialAmountToPay.toLocaleString()}`}
+                className="bg-gray-800 text-white border-gray-700 font-bold"
+                readOnly
+              />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="cashAmount" className="text-gray-300">
+                  Бэлэн мөнгө (₮)
+                </Label>
+                <Input
+                  id="cashAmount"
+                  type="number"
+                  value={cashAmountInput}
+                  onChange={(e) => setCashAmountInput(Number(e.target.value))}
+                  className="bg-gray-800 text-white border-gray-700"
+                  min="0"
+                />
+              </div>
+              <div>
+                <Label htmlFor="cardAmount" className="text-gray-300">
+                  Карт (₮)
+                </Label>
+                <Input
+                  id="cardAmount"
+                  type="number"
+                  value={cardAmountInput}
+                  onChange={(e) => setCardAmountInput(Number(e.target.value))}
+                  className="bg-gray-800 text-white border-gray-700"
+                  min="0"
+                />
+              </div>
+              <div>
+                <Label htmlFor="transferAmount" className="text-gray-300">
+                  Харилцах (₮)
+                </Label>
+                <Input
+                  id="transferAmount"
+                  type="number"
+                  value={transferAmountInput}
+                  onChange={(e) => setTransferAmountInput(Number(e.target.value))}
+                  className="bg-gray-800 text-white border-gray-700"
+                  min="0"
+                />
+              </div>
+            </div>
+            <div className="text-right text-lg font-semibold text-white">
+              Нийт оруулсан дүн: ₮{(cashAmountInput + cardAmountInput + transferAmountInput).toLocaleString()}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowPaymentDialog(false)}
+              className="bg-gray-800 text-white border-gray-700 hover:bg-gray-700"
+            >
+              Цуцлах
+            </Button>
+            <Button
+              onClick={handleSavePaymentStatus}
+              disabled={paymentLoading}
+              className="bg-green-600 text-white hover:bg-green-700"
+            >
+              {paymentLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Хадгалж байна...
+                </>
+              ) : (
+                "Хадгалах"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -3779,124 +3977,97 @@ export default function DirectorPage() {
 
       {/* Edit Record Dialog */}
       <Dialog open={showEditRecordDialog} onOpenChange={setShowEditRecordDialog}>
-        <DialogContent className="max-w-md bg-gray-900 text-white border-gray-700 max-h-[80vh] overflow-y-auto">
+        <DialogContent className="bg-gray-900 text-white border-gray-700">
           <DialogHeader>
             <DialogTitle className="text-white">Бүртгэл засах</DialogTitle>
             <DialogDescription className="text-gray-400">Бүртгэлийн мэдээллийг шинэчлэх</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
-              <Label htmlFor="editCarNumber" className="text-gray-300">
-                Машины дугаар
-              </Label>
-              <Input
-                id="editCarNumber"
-                type="text"
-                value={editRecordData.carNumber}
-                onChange={(e) => setEditRecordData({ ...editRecordData, carNumber: e.target.value })}
-                placeholder="Машины дугаар"
-                className="bg-gray-800 text-white border-gray-700"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="editCarNumber" className="text-gray-300">
+                  Машины дугаар
+                </Label>
+                <Input
+                  id="editCarNumber"
+                  type="text"
+                  value={editRecordData.carNumber}
+                  onChange={(e) => setEditRecordData({ ...editRecordData, carNumber: e.target.value })}
+                  className="bg-gray-800 text-white border-gray-700"
+                  placeholder="Машины дугаар"
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="editMechanicName" className="text-gray-300">
+                  Засварчин
+                </Label>
+                <Input
+                  id="editMechanicName"
+                  type="text"
+                  value={editRecordData.mechanicName}
+                  onChange={(e) => setEditRecordData({ ...editRecordData, mechanicName: e.target.value })}
+                  className="bg-gray-800 text-white border-gray-700"
+                  placeholder="Засварчин"
+                />
+              </div>
             </div>
-
-            <div>
-              <Label htmlFor="editMechanicName" className="text-gray-300">
-                Засварчин
-              </Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    className="w-full justify-between bg-gray-800 text-white border-gray-700 hover:bg-gray-700"
-                  >
-                    {editRecordData.mechanicName
-                      ? availableEmployees.find((emp) => emp.name === editRecordData.mechanicName)?.name
-                      : "Засварчин сонгох"}
-                    <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[200px] p-0 bg-gray-900 text-white border-gray-700">
-                  <Command className="bg-gray-900">
-                    <CommandInput
-                      placeholder="Засварчин хайх..."
-                      className="h-9 bg-gray-800 text-white border-gray-700"
-                    />
-                    <CommandEmpty>Засварчин олдсонгүй.</CommandEmpty>
-                    <CommandGroup>
-                      <CommandList>
-                        {availableEmployees.map((employee) => (
-                          <CommandItem
-                            key={employee.id}
-                            onSelect={() => {
-                              setEditRecordData({ ...editRecordData, mechanicName: employee.name })
-                            }}
-                            className="cursor-pointer hover:bg-gray-800"
-                          >
-                            {employee.name}
-                          </CommandItem>
-                        ))}
-                      </CommandList>
-                    </CommandGroup>
-                  </Command>
-                </PopoverContent>
-              </Popover>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="editCarBrand" className="text-gray-300">
+                  Машины марк
+                </Label>
+                <Input
+                  id="editCarBrand"
+                  type="text"
+                  value={editRecordData.carBrand}
+                  onChange={(e) => setEditRecordData({ ...editRecordData, carBrand: e.target.value })}
+                  className="bg-gray-800 text-white border-gray-700"
+                  placeholder="Машины марк"
+                />
+              </div>
+              <div>
+                <Label htmlFor="editParkingArea" className="text-gray-300">
+                  Талбай
+                </Label>
+                <select
+                  id="editParkingArea"
+                  value={editRecordData.parkingArea}
+                  onChange={(e) => setEditRecordData({ ...editRecordData, parkingArea: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-800 text-white border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="general">Талбай</option>
+                  <option value="leather">Тен</option>
+                  <option value="spare">Сафари</option>
+                </select>
+              </div>
             </div>
-
-            <div>
-              <Label htmlFor="editCarBrand" className="text-gray-300">
-                Машины марк
-              </Label>
-              <Input
-                id="editCarBrand"
-                type="text"
-                value={editRecordData.carBrand}
-                onChange={(e) => setEditRecordData({ ...editRecordData, carBrand: e.target.value })}
-                placeholder="Машины марк"
-                className="bg-gray-800 text-white border-gray-700"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="editEntryTime" className="text-gray-300">
+                  Орсон цаг
+                </Label>
+                <Input
+                  id="editEntryTime"
+                  type="datetime-local"
+                  value={editRecordData.entryTime}
+                  onChange={(e) => setEditRecordData({ ...editRecordData, entryTime: e.target.value })}
+                  className="bg-gray-800 text-white border-gray-700"
+                />
+              </div>
+              <div>
+                <Label htmlFor="editExitTime" className="text-gray-300">
+                  Гарсан цаг
+                </Label>
+                <Input
+                  id="editExitTime"
+                  type="datetime-local"
+                  value={editRecordData.exitTime}
+                  onChange={(e) => setEditRecordData({ ...editRecordData, exitTime: e.target.value })}
+                  className="bg-gray-800 text-white border-gray-700"
+                />
+              </div>
             </div>
-
-            <div>
-              <Label htmlFor="editEntryTime" className="text-gray-300">
-                Орсон цаг
-              </Label>
-              <Input
-                id="editEntryTime"
-                type="datetime-local"
-                value={editRecordData.entryTime ? new Date(editRecordData.entryTime).toISOString().slice(0, 16) : ""}
-                onChange={(e) => setEditRecordData({ ...editRecordData, entryTime: e.target.value })}
-                className="bg-gray-800 text-white border-gray-700"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="editExitTime" className="text-gray-300">
-                Гарсан цаг
-              </Label>
-              <Input
-                id="editExitTime"
-                type="datetime-local"
-                value={editRecordData.exitTime ? new Date(editRecordData.exitTime).toISOString().slice(0, 16) : ""}
-                onChange={(e) => setEditRecordData({ ...editRecordData, exitTime: e.target.value })}
-                className="bg-gray-800 text-white border-gray-700"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="editParkingDuration" className="text-gray-300">
-                Зогссон хугацаа (цаг)
-              </Label>
-              <Input
-                id="editParkingDuration"
-                type="text"
-                value={editRecordData.parkingDuration}
-                onChange={(e) => setEditRecordData({ ...editRecordData, parkingDuration: e.target.value })}
-                placeholder="Жишээ: 2.5"
-                className="bg-gray-800 text-white border-gray-700"
-              />
-            </div>
-
             <div>
               <Label htmlFor="editAmount" className="text-gray-300">
                 Төлбөр (₮)
@@ -3906,15 +4077,13 @@ export default function DirectorPage() {
                 type="number"
                 value={editRecordData.amount}
                 onChange={(e) => setEditRecordData({ ...editRecordData, amount: Number(e.target.value) })}
-                placeholder="0"
-                min="0"
                 className="bg-gray-800 text-white border-gray-700"
+                min="0"
               />
             </div>
-
             <div>
               <Label htmlFor="editImages" className="text-gray-300">
-                Зураг
+                Зураг нэмэх
               </Label>
               <Input
                 id="editImages"
@@ -3923,7 +4092,7 @@ export default function DirectorPage() {
                 onChange={handleImageUploadForRecord}
                 className="bg-gray-800 text-white border-gray-700"
               />
-              <div className="mt-2 flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 mt-2">
                 {editRecordData.images.map((image, index) => (
                   <div key={index} className="relative">
                     <img
@@ -3932,13 +4101,12 @@ export default function DirectorPage() {
                       className="w-20 h-20 object-cover rounded"
                     />
                     <Button
-                      type="button"
                       variant="destructive"
                       size="icon"
-                      className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
+                      className="absolute -top-2 -right-2 h-5 w-5 rounded-full"
                       onClick={() => handleDeleteRecordImage(index)}
                     >
-                      <X className="h-4 w-4" />
+                      <X className="h-3 w-3" />
                     </Button>
                   </div>
                 ))}
@@ -3958,7 +4126,14 @@ export default function DirectorPage() {
               disabled={editRecordLoading}
               className="bg-blue-600 text-white hover:bg-blue-700"
             >
-              {editRecordLoading ? "Хадгалж байна..." : "Хадгалах"}
+              {editRecordLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Хадгалж байна...
+                </>
+              ) : (
+                "Хадгалах"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -3966,36 +4141,38 @@ export default function DirectorPage() {
 
       {/* Image Viewer Dialog */}
       <Dialog open={showImageViewer} onOpenChange={setShowImageViewer}>
-        <DialogContent className="max-w-3xl bg-gray-900 text-white border-gray-700 p-0">
+        <DialogContent className="max-w-4xl bg-gray-900 text-white border-gray-700 p-0">
           <DialogHeader className="p-4">
             <DialogTitle className="text-white">Зураг харах</DialogTitle>
             <DialogDescription className="text-gray-400">
-              Зураг {currentImageIndex + 1} / {currentImages.length}
+              Зураг ({currentImageIndex + 1} / {currentImages.length})
             </DialogDescription>
           </DialogHeader>
           <div className="relative flex items-center justify-center bg-black">
-            <img
-              src={currentImages[currentImageIndex] || "/placeholder.svg"}
-              alt={`Image ${currentImageIndex + 1}`}
-              className="max-h-[70vh] w-full object-contain"
-            />
+            {currentImages.length > 0 && (
+              <img
+                src={currentImages[currentImageIndex] || "/placeholder.svg"}
+                alt={`Image ${currentImageIndex + 1}`}
+                className="max-h-[70vh] object-contain"
+              />
+            )}
             {currentImages.length > 1 && (
               <>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute left-2 top-1/2 -translate-y-1/2 bg-gray-800/50 text-white hover:bg-gray-700/70"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 bg-gray-800/50 hover:bg-gray-700/70 text-white"
                   onClick={prevImage}
                 >
-                  <ChevronDown className="h-6 w-6 rotate-90" />
+                  {"<"}
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-gray-800/50 text-white hover:bg-gray-700/70"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-gray-800/50 hover:bg-gray-700/70 text-white"
                   onClick={nextImage}
                 >
-                  <ChevronDown className="h-6 w-6 -rotate-90" />
+                  {">"}
                 </Button>
               </>
             )}
