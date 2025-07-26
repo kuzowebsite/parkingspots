@@ -1077,7 +1077,7 @@ export default function DirectorPage() {
         "№": index + 1,
         "Машины дугаар": record.carNumber,
         Засварчин: record.mechanicName || record.driverName || "-",
-        "Албан тушаал": (() => {
+        "Үйлчилгээ": (() => {
           const employee = employees.find((emp) => emp.name === (record.mechanicName || record.driverName))
           return employee?.position || "-"
         })(),
@@ -1100,7 +1100,7 @@ export default function DirectorPage() {
         { wch: 5 }, // №
         { wch: 15 }, // Машины дугаар
         { wch: 20 }, // Засварчин
-        { wch: 15 }, // Албан тушаал
+        { wch: 15 }, // Үйлчилгээ
         { wch: 15 }, // Талбай
         { wch: 15 }, // Машины марк (NEW)
         { wch: 20 }, // Орсон цаг
@@ -1122,7 +1122,7 @@ export default function DirectorPage() {
           "№": "",
           "Машины дугаар": "",
           Засварчин: "",
-          "Албан тушаал": "",
+          "Үйлчилгээ": "",
           Талбай: "",
           "Машины марк": "",
           "Орсон цаг": "",
@@ -1131,7 +1131,7 @@ export default function DirectorPage() {
           "Төлбөр (₮)": totalCashAmount,
           "Бэлэн мөнгө (₮)": "",
           "Карт (₮)": "",
-          "Харилцах (₮)": "",
+          "��арилцах (₮)": "",
           "Төлбөрийн төлөв": "",
           Зураг: "",
         },
@@ -1139,7 +1139,7 @@ export default function DirectorPage() {
           "№": "",
           "Машины дугаар": "",
           Засварчин: "",
-          "Албан тушаал": "",
+          "Үйлчилгээ": "",
           Талбай: "",
           "Машины марк": "",
           "Орсон цаг": "",
@@ -1156,7 +1156,7 @@ export default function DirectorPage() {
           "№": "",
           "Машины дугаар": "",
           Засварчин: "",
-          "Албан тушаал": "",
+          "Үйлчилгээ": "",
           Талбай: "",
           "Машины марк": "",
           "Орсон цаг": "",
@@ -1173,7 +1173,7 @@ export default function DirectorPage() {
           "№": "",
           "Машины дугаар": "",
           Засварчин: "",
-          "Албан тушаал": "",
+          "Үйлчилгээ": "",
           Талбай: "",
           "Машины марк": "",
           "Орсон цаг": "",
@@ -1237,7 +1237,7 @@ export default function DirectorPage() {
         "№": index + 1,
         "Машины дугаар": record.carNumber,
         Засварчин: record.mechanicName || record.driverName || "-",
-        "Албан тушаал": (() => {
+        "Үйлчилгээ": (() => {
           const employee = employees.find((emp) => emp.name === (record.mechanicName || record.driverName))
           return employee?.position || "-"
         })(),
@@ -1260,7 +1260,7 @@ export default function DirectorPage() {
         { wch: 5 }, // №
         { wch: 15 }, // Машины дугаар
         { wch: 20 }, // Засварчин
-        { wch: 15 }, // Албан тушаал
+        { wch: 15 }, // Үйлчилгээ
         { wch: 15 }, // Талбай
         { wch: 15 }, // Машины марк (NEW)
         { wch: 20 }, // Орсон цаг
@@ -1294,7 +1294,7 @@ export default function DirectorPage() {
           "№": "",
           "Машины дугаар": "",
           Засварчин: "",
-          "Албан тушаал": "",
+          "Үйлчилгээ": "",
           Талбай: "",
           "Машины марк": "",
           "Орсон цаг": "",
@@ -1311,7 +1311,7 @@ export default function DirectorPage() {
           "№": "",
           "Машины дугаар": "",
           Засварчин: "",
-          "Албан тушаал": "",
+          "Үйлчилгээ": "",
           Талбай: "",
           "Машины марк": "",
           "Орсон цаг": "",
@@ -1328,7 +1328,7 @@ export default function DirectorPage() {
           "№": "",
           "Машины дугаар": "",
           Засварчин: "",
-          "Албан тушаал": "",
+          "Үйлчилгээ": "",
           Талбай: "",
           "Машины марк": "",
           "Орсон цаг": "",
@@ -1345,7 +1345,7 @@ export default function DirectorPage() {
           "№": "",
           "Машины дугаар": "",
           Засварчин: "",
-          "Албан тушаал": "",
+          "Үйлчилгээ": "",
           Талбай: "",
           "Машины марк": "",
           "Орсон цаг": "",
@@ -2664,7 +2664,7 @@ export default function DirectorPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="role" className="text-gray-300">
-                        Албан тушаал
+                        Үйлчилгээ
                       </Label>
                       <select
                         id="role"
@@ -3063,7 +3063,7 @@ export default function DirectorPage() {
                             className="text-left p-1 text-gray-300 cursor-pointer hover:text-white text-xs"
                             onClick={() => handleSort("position")}
                           >
-                            Албан тушаал
+                            Үйлчилгээ
                             {sortField === "position" && (
                               <span className="ml-1">{sortDirection === "asc" ? "↑" : "↓"}</span>
                             )}
@@ -3124,7 +3124,7 @@ export default function DirectorPage() {
                             )}
                           </th>
                           <th className="text-left p-1 text-gray-300 text-xs">Зураг</th>
-                          <th className="text-left p-1 text-gray-300 text-xs">Үйлдэл</th>
+                          <th className="text-left p-1 text-gray-300 text-xs">Үйлд��л</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -3270,7 +3270,7 @@ export default function DirectorPage() {
               </div>
               <div>
                 <Label htmlFor="employeePosition" className="text-gray-300">
-                  Албан тушаал
+                  Үйлчилгээ
                 </Label>
                 <Input
                   id="employeePosition"
@@ -3278,7 +3278,7 @@ export default function DirectorPage() {
                   value={newEmployee.position}
                   onChange={(e) => setNewEmployee({ ...newEmployee, position: e.target.value })}
                   className="bg-gray-800 text-white border-gray-700"
-                  placeholder="Албан тушаал"
+                  placeholder="Үйлчилгээ"
                 />
               </div>
             </div>
@@ -3847,8 +3847,8 @@ export default function DirectorPage() {
             {deleteAfterExport && (
               <div className="bg-red-900 border border-red-700 rounded-md p-3">
                 <p className="text-red-300 text-sm">
-                  <strong>Анхааруулга:</strong> Энэ үйлдэл нь сонгосон хугацааны бүх бүртгэлийг өгөгдлийн сангаас
-                  бүрмөсөн устгана. Энэ үйлдлийг буцаах боломжгүй!
+                  <strong>Анхааруулга:</strong> Энэ үйлдлийг буцаах боломжгүй. Татаж авсан бүртгэлүүд өгөгдлийн сангаас
+                  бүрмөсөн устгагдана.
                 </p>
               </div>
             )}
@@ -3872,10 +3872,7 @@ export default function DirectorPage() {
                   Татаж байна...
                 </>
               ) : (
-                <>
-                  <Download className="w-4 h-4 mr-2" />
-                  Excel татах
-                </>
+                "Татах"
               )}
             </Button>
           </DialogFooter>
@@ -3888,64 +3885,62 @@ export default function DirectorPage() {
           <DialogHeader>
             <DialogTitle className="text-white">Төлбөрийн мэдээлэл шинэчлэх</DialogTitle>
             <DialogDescription className="text-gray-400">
-              {selectedRecord?.carNumber} дугаартай машины төлбөрийн мэдээллийг шинэчлэх
+              Машины дугаар: {selectedRecord?.carNumber || "-"}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="totalAmount" className="text-gray-300">
-                Нийт төлбөр
+              <Label htmlFor="initialAmount" className="text-gray-300">
+                Нийт төлбөр (₮)
               </Label>
               <Input
-                id="totalAmount"
-                type="text"
-                value={`₮${initialAmountToPay.toLocaleString()}`}
+                id="initialAmount"
+                type="number"
+                value={initialAmountToPay.toLocaleString()}
                 className="bg-gray-800 text-white border-gray-700 font-bold"
                 readOnly
               />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="cashAmount" className="text-gray-300">
-                  Бэлэн мөнгө (₮)
-                </Label>
-                <Input
-                  id="cashAmount"
-                  type="number"
-                  value={cashAmountInput}
-                  onChange={(e) => setCashAmountInput(Number(e.target.value))}
-                  className="bg-gray-800 text-white border-gray-700"
-                  min="0"
-                />
-              </div>
-              <div>
-                <Label htmlFor="cardAmount" className="text-gray-300">
-                  Карт (₮)
-                </Label>
-                <Input
-                  id="cardAmount"
-                  type="number"
-                  value={cardAmountInput}
-                  onChange={(e) => setCardAmountInput(Number(e.target.value))}
-                  className="bg-gray-800 text-white border-gray-700"
-                  min="0"
-                />
-              </div>
-              <div>
-                <Label htmlFor="transferAmount" className="text-gray-300">
-                  Харилцах (₮)
-                </Label>
-                <Input
-                  id="transferAmount"
-                  type="number"
-                  value={transferAmountInput}
-                  onChange={(e) => setTransferAmountInput(Number(e.target.value))}
-                  className="bg-gray-800 text-white border-gray-700"
-                  min="0"
-                />
-              </div>
+            <div>
+              <Label htmlFor="cashAmount" className="text-gray-300">
+                Бэлэн мөнгө (₮)
+              </Label>
+              <Input
+                id="cashAmount"
+                type="number"
+                value={cashAmountInput}
+                onChange={(e) => setCashAmountInput(Number(e.target.value))}
+                className="bg-gray-800 text-white border-gray-700"
+                min="0"
+              />
             </div>
-            <div className="text-right text-lg font-semibold text-white">
+            <div>
+              <Label htmlFor="cardAmount" className="text-gray-300">
+                Карт (₮)
+              </Label>
+              <Input
+                id="cardAmount"
+                type="number"
+                value={cardAmountInput}
+                onChange={(e) => setCardAmountInput(Number(e.target.value))}
+                className="bg-gray-800 text-white border-gray-700"
+                min="0"
+              />
+            </div>
+            <div>
+              <Label htmlFor="transferAmount" className="text-gray-300">
+                Харилцах (₮)
+              </Label>
+              <Input
+                id="transferAmount"
+                type="number"
+                value={transferAmountInput}
+                onChange={(e) => setTransferAmountInput(Number(e.target.value))}
+                className="bg-gray-800 text-white border-gray-700"
+                min="0"
+              />
+            </div>
+            <div className="text-right text-lg font-bold text-white">
               Нийт оруулсан дүн: ₮{(cashAmountInput + cardAmountInput + transferAmountInput).toLocaleString()}
             </div>
           </div>
@@ -4069,6 +4064,19 @@ export default function DirectorPage() {
               </div>
             </div>
             <div>
+              <Label htmlFor="editParkingDuration" className="text-gray-300">
+                Зогссон хугацаа (цаг)
+              </Label>
+              <Input
+                id="editParkingDuration"
+                type="text"
+                value={editRecordData.parkingDuration}
+                onChange={(e) => setEditRecordData({ ...editRecordData, parkingDuration: e.target.value })}
+                className="bg-gray-800 text-white border-gray-700"
+                placeholder="Жишээ нь: 2 цаг"
+              />
+            </div>
+            <div>
               <Label htmlFor="editAmount" className="text-gray-300">
                 Төлбөр (₮)
               </Label>
@@ -4082,17 +4090,17 @@ export default function DirectorPage() {
               />
             </div>
             <div>
-              <Label htmlFor="editImages" className="text-gray-300">
-                Зураг нэмэх
+              <Label htmlFor="recordImages" className="text-gray-300">
+                Зураг
               </Label>
               <Input
-                id="editImages"
+                id="recordImages"
                 type="file"
                 accept="image/*"
                 onChange={handleImageUploadForRecord}
                 className="bg-gray-800 text-white border-gray-700"
               />
-              <div className="flex flex-wrap gap-2 mt-2">
+              <div className="mt-2 flex flex-wrap gap-2">
                 {editRecordData.images.map((image, index) => (
                   <div key={index} className="relative">
                     <img
@@ -4141,19 +4149,20 @@ export default function DirectorPage() {
 
       {/* Image Viewer Dialog */}
       <Dialog open={showImageViewer} onOpenChange={setShowImageViewer}>
-        <DialogContent className="max-w-4xl bg-gray-900 text-white border-gray-700 p-0">
-          <DialogHeader className="p-4">
+        <DialogContent className="flex flex-col items-center justify-center bg-gray-900 text-white border-gray-700 p-4 max-w-[90vw] max-h-[90vh] min-h-[60vh]">
+          <DialogHeader className="w-full flex flex-row justify-between items-center pb-2">
             <DialogTitle className="text-white">Зураг харах</DialogTitle>
-            <DialogDescription className="text-gray-400">
-              Зураг ({currentImageIndex + 1} / {currentImages.length})
-            </DialogDescription>
+            <Button variant="ghost" size="icon" onClick={closeImageViewer} className="text-gray-400 hover:text-white">
+              <X className="h-5 w-5" />
+            </Button>
           </DialogHeader>
-          <div className="relative flex items-center justify-center bg-black">
+          <div className="relative flex-grow flex items-center justify-center w-full h-full">
             {currentImages.length > 0 && (
               <img
                 src={currentImages[currentImageIndex] || "/placeholder.svg"}
                 alt={`Image ${currentImageIndex + 1}`}
-                className="max-h-[70vh] object-contain"
+                className="max-w-full max-h-full object-contain"
+                style={{ maxWidth: "90vw", maxHeight: "75vh" }} // Ensure image fits within dialog
               />
             )}
             {currentImages.length > 1 && (
@@ -4161,31 +4170,27 @@ export default function DirectorPage() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute left-2 top-1/2 -translate-y-1/2 bg-gray-800/50 hover:bg-gray-700/70 text-white"
                   onClick={prevImage}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 bg-gray-800/80 text-white hover:bg-gray-700/80 border border-gray-700 rounded-full p-2"
                 >
-                  {"<"}
+                  <ChevronDown className="h-6 w-6 rotate-90" />
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-gray-800/50 hover:bg-gray-700/70 text-white"
                   onClick={nextImage}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-gray-800/80 text-white hover:bg-gray-700/80 border border-gray-700 rounded-full p-2"
                 >
-                  {">"}
+                  <ChevronDown className="h-6 w-6 -rotate-90" />
                 </Button>
               </>
             )}
           </div>
-          <DialogFooter className="p-4">
-            <Button
-              variant="outline"
-              onClick={closeImageViewer}
-              className="bg-gray-800 text-white border-gray-700 hover:bg-gray-700"
-            >
-              Хаах
-            </Button>
-          </DialogFooter>
+          {currentImages.length > 0 && (
+            <div className="text-gray-400 text-sm mt-2">
+              {currentImageIndex + 1} / {currentImages.length}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
