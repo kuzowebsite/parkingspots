@@ -20,7 +20,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import {
-  Trash2,
   UserPlus,
   Shield,
   Edit,
@@ -28,7 +27,6 @@ import {
   PowerOff,
   Settings,
   UserIcon,
-  Globe,
   LogOut,
   Eye,
   Calendar,
@@ -39,13 +37,14 @@ import {
   BarChart3,
   ChevronDown,
   X,
+  Trash2,
 } from "lucide-react"
 import * as XLSX from "xlsx"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
-import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command"
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover" // Added Popover imports
+import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command" // Added Command imports
 
-export default function DirectorPage() {
+export default function ManagerPage() {
   const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
@@ -63,8 +62,8 @@ export default function DirectorPage() {
   const [reportFilterDay, setReportFilterDay] = useState("")
   const [reportFilterTime, setReportFilterTime] = useState("")
   const [reportFilterCarNumber, setReportFilterCarNumber] = useState("")
-  const [reportFilterMechanic, setReportFilterMechanic] = useState<string[]>([])
-  const [reportFilterPaymentStatus, setReportFilterPaymentStatus] = useState("")
+  const [reportFilterMechanic, setReportFilterMechanic] = useState<string[]>([]) // Changed to array for multi-select
+  const [reportFilterPaymentStatus, setReportFilterPaymentStatus] = useState("") // New filter
   // Sorting states
   const [sortField, setSortField] = useState<string>("")
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
@@ -127,14 +126,15 @@ export default function DirectorPage() {
     createdAt: "",
   })
   const [registrationLoading, setRegistrationLoading] = useState(false)
-  const [isNamePhoneAutoFilled, setIsNamePhoneAutoFilled] = useState(false)
+  const [isNamePhoneAutoFilled, setIsNamePhoneAutoFilled] = useState(false) // Added for employee selection
   // Add "director" to the selectedRole type
-  const [selectedRole, setSelectedRole] = useState<"manager" | "driver" | "employee" | "director">("employee")
+  const [selectedRole, setSelectedRole] = useState<"manager" | "driver" | "employee">("employee")
   // Add this after the existing states, around line 100
   const [availableEmployees, setAvailableEmployees] = useState<any[]>([])
   // Edit driver states
-  const [editingUser, setEditingUser] = useState<UserProfile | null>(null)
+  const [editingUser, setEditingUser] = useState<UserProfile | null>(null) // Renamed from editingDriver
   const [editUserData, setEditUserData] = useState({
+    // Renamed from editDriverData
     name: "",
     phone: "",
     email: "",
@@ -151,39 +151,14 @@ export default function DirectorPage() {
     profileImage: "",
   })
   const [profileLoading, setLoadingProfile] = useState(false)
-  // Site configuration states
-  const [showSiteDialog, setShowSiteDialog] = useState(false)
-  const [siteConfig, setSiteConfig] = useState({
-    siteName: "",
-    siteLogo: "",
-    siteBackground: "",
-  })
-  const [siteLoading, setSiteLoading] = useState(false)
   // Profile image and password states
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [showPassword, setShowPassword] = useState(false) // Renamed from setShowConfirmPassword
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false) // Renamed from setShowPassword
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
   })
-  // Pricing states
-  const [showPricingDialog, setShowPricingDialog] = useState(false)
-  const [pricingConfig, setPricingConfig] = useState({
-    leather: {
-      firstHour: 0,
-      subsequentHour: 0,
-    },
-    spare: {
-      firstHour: 0,
-      subsequentHour: 0,
-    },
-    general: {
-      firstHour: 0,
-      subsequentHour: 0,
-    },
-  })
-  const [pricingLoading, setPricingLoading] = useState(false)
   // Payment status dialog states
   const [showPaymentDialog, setShowPaymentDialog] = useState(false)
   const [selectedRecord, setSelectedRecord] = useState<any>(null)
@@ -191,7 +166,7 @@ export default function DirectorPage() {
   const [cashAmountInput, setCashAmountInput] = useState(0)
   const [cardAmountInput, setCardAmountInput] = useState(0)
   const [transferAmountInput, setTransferAmountInput] = useState(0)
-  const [paymentLoading, setPaymentLoading] = useState(false)
+  const [paymentLoading, setPaymentLoading] = useState(false) // Changed to boolean
   // Add a new state variable for `initialAmountToPay`
   const [initialAmountToPay, setInitialAmountToPay] = useState(0)
   // Edit record dialog states
@@ -201,22 +176,21 @@ export default function DirectorPage() {
     carNumber: "",
     mechanicName: "",
     carBrand: "",
-    parkingArea: "", // Add this field
-    position: "", // Add this field
+    parkingArea: "", // Added this field
+    position: "", // Added this field
     entryTime: "",
     exitTime: "",
     parkingDuration: "",
-    amount: 0,
-    images: [] as string[],
+    amount: 0, // Added amount field
+    images: [] as string[], // Added images field
   })
   const [editRecordLoading, setEditRecordLoading] = useState(false)
-  const [deleteRecordLoading, setDeleteRecordLoading] = useState(false)
   // State for filter collapsible
   const [isFilterOpen, setIsFilterOpen] = useState(true)
   // Logout loading state
   const [logoutLoading, setLogoutLoading] = useState(false)
 
-  // Function to get Mongolian area name
+  // Function to get Mongolian area name (assuming pricing config is not available in manager)
   const getAreaNameInMongolian = (area: string): string => {
     const areaMap: { [key: string]: string } = {
       leather: "Тен",
@@ -345,39 +319,6 @@ export default function DirectorPage() {
         setLoading(false)
       }
     })
-    // Load site configuration
-    const siteRef = ref(database, "siteConfig")
-    onValue(siteRef, (snapshot) => {
-      const data = snapshot.val()
-      if (data) {
-        setSiteConfig({
-          siteName: data.siteName || "",
-          siteLogo: data.siteLogo || "",
-          siteBackground: data.siteBackground || "",
-        })
-      }
-    })
-    // Load pricing configuration
-    const pricingRef = ref(database, "pricingConfig")
-    onValue(pricingRef, (snapshot) => {
-      const data = snapshot.val()
-      if (data) {
-        setPricingConfig({
-          leather: {
-            firstHour: data.leather?.firstHour || 0,
-            subsequentHour: data.leather?.subsequentHour || 0,
-          },
-          spare: {
-            firstHour: data.spare?.firstHour || 0,
-            subsequentHour: data.spare?.subsequentHour || 0,
-          },
-          general: {
-            firstHour: data.general?.firstHour || 0,
-            subsequentHour: data.general?.subsequentHour || 0,
-          },
-        })
-      }
-    })
     // Load report records after profile is loaded
     setTimeout(() => {
       loadReportRecords()
@@ -385,10 +326,10 @@ export default function DirectorPage() {
     // Add this line after loadReportRecords() call:
     loadEmployees()
     loadManagers()
-    loadDirectors()
+    loadDirectors() // Add this line to load directors
     loadDrivers()
     loadDashboardData()
-    loadLoginEmployees()
+    loadLoginEmployees() // Add this line
     // In the loadUserProfile function, after the existing load calls around line 200, add:
     loadAvailableEmployees()
   }
@@ -805,7 +746,7 @@ export default function DirectorPage() {
 
   // In handleEditEmployee function:
   const handleEditEmployee = (employee: UserProfile) => {
-    setEditingUser(employee)
+    setEditingUser(employee) // Corrected: set editingUser instead of editingDriver
     setEditUserData({
       name: employee.name,
       phone: employee.phone,
@@ -813,6 +754,65 @@ export default function DirectorPage() {
       newPassword: "", // Ensure new password field is always empty on open
     })
     setShowEditDialog(true)
+  }
+
+  // In handleSaveEmployeeEdit function:
+  const handleSaveUserEdit = async () => {
+    console.log("handleSaveUserEdit called")
+    if (!editingUser || !editUserData.name.trim() || !editUserData.email.trim()) {
+      alert("Нэр болон и-мэйл хаягийг бөглөнө үү")
+      console.error("Validation failed: Missing user data or required fields.")
+      return
+    }
+    setEditLoading(true)
+    try {
+      // Merge existing user data with updated fields
+      const updateData: Partial<UserProfile> = {
+        ...editingUser, // Start with existing data to preserve fields not in the form
+        name: editUserData.name.trim(),
+        phone: editUserData.phone.trim(),
+        email: editUserData.email.trim(),
+        updatedAt: new Date().toISOString(),
+      }
+
+      // Ensure 'id' is not part of the update payload, as it's the key
+      delete updateData.id
+
+      console.log("Updating user with ID:", editingUser.id, "with data:", updateData)
+      // Update both users and employees nodes for employees
+      await update(ref(database, `users/${editingUser.id}`), updateData)
+      console.log("User node updated successfully.")
+
+      if (editingUser.role === "employee") {
+        console.log("Updating employee node with ID:", editingUser.id, "with data:", updateData)
+        await update(ref(database, `employees/${editingUser.id}`), updateData)
+        console.log("Employee node updated successfully.")
+      }
+
+      const userType =
+        editingUser.role === "manager"
+          ? "Менежерийн"
+          : editingUser.role === "driver"
+            ? "Бүртгэлийн"
+            : editingUser.role === "director"
+              ? "Захиралын"
+              : "Ажилчны"
+      alert(`${userType} мэдээлэл амжилттай шинэчлэгдлээ`)
+      setShowEditDialog(false)
+      setEditingUser(null)
+    } catch (error) {
+      console.error("Error updating user/employee:", error)
+      const userType =
+        editingUser?.role === "manager"
+          ? "менежерийн"
+          : editingUser?.role === "driver"
+            ? "бүртгэлийн"
+            : editingUser?.role === "director"
+              ? "захиралын"
+              : "ажилчны"
+      alert(`${userType} мэдээлэл шинэчлэхэд алдаа гарлаа`)
+    }
+    setEditLoading(false)
   }
 
   // Delete employee
@@ -958,16 +958,7 @@ export default function DirectorPage() {
   }
 
   const calculateParkingFee = (entryTime: string, exitTime: string): number => {
-    if (
-      !entryTime ||
-      !exitTime ||
-      pricingConfig.leather.firstHour === 0 ||
-      pricingConfig.leather.subsequentHour === 0 ||
-      pricingConfig.spare.firstHour === 0 ||
-      pricingConfig.spare.subsequentHour === 0 ||
-      pricingConfig.general.firstHour === 0 ||
-      pricingConfig.general.subsequentHour === 0
-    ) {
+    if (!entryTime || !exitTime) {
       return 0
     }
     try {
@@ -993,7 +984,7 @@ export default function DirectorPage() {
       }
       const diffInMs = exitDate.getTime() - entryDate.getTime()
       const diffInMinutes = Math.ceil(diffInMs / (1000 * 60)) // Round up to next minute
-      return Math.max(0, diffInMinutes * pricingConfig.general.firstHour)
+      return Math.max(0, diffInMinutes * 0) // Assuming a default rate if pricing config is removed
     } catch (error) {
       console.error("Error calculating parking fee:", error)
       return 0
@@ -1087,9 +1078,9 @@ export default function DirectorPage() {
         "Гарсан цаг": record.exitTime || "-",
         "Зогссон хугацаа": record.parkingDuration ? `${record.parkingDuration} ц` : "-",
         "Төлбөр (₮)": calculateParkingFeeForReport(record),
-        "Бэлэн мөнгө (₮)": record.cashAmount || 0,
-        "Карт (₮)": record.cardAmount || 0,
-        "Харилцах (₮)": record.transferAmount || 0,
+        "Бэлэн мөнгө (₮)": record.cashAmount || 0, // Added cash amount
+        "Карт (₮)": record.cardAmount || 0, // Added card amount
+        "Харилцах (₮)": record.transferAmount || 0, // Added transfer amount
         "Төлбөрийн төлөв": record.paymentStatus === "paid" ? "Төлсөн" : "Төлөөгүй",
         Зураг: record.images && record.images.length > 0 ? "Байна" : "Байхгүй",
       }))
@@ -1247,9 +1238,9 @@ export default function DirectorPage() {
         "Гарсан цаг": record.exitTime || "-",
         "Зогссон хугацаа": record.parkingDuration ? `${record.parkingDuration} ц` : "-",
         "Төлбөр (₮)": calculateParkingFeeForReport(record),
-        "Бэлэн мөнгө (₮)": record.cashAmount || 0,
-        "Карт (₮)": record.cardAmount || 0,
-        "Харилцах (₮)": record.transferAmount || 0,
+        "Бэлэн мөнгө (₮)": record.cashAmount || 0, // Added cash amount
+        "Карт (₮)": record.cardAmount || 0, // Added card amount
+        "Харилцах (₮)": record.transferAmount || 0, // Added transfer amount
         "Төлбөрийн төлөв": record.paymentStatus === "paid" ? "Төлсөн" : "Төлөөгүй",
         Зураг: record.images && record.images.length > 0 ? "Байна" : "Байхгүй",
       }))
@@ -1351,7 +1342,7 @@ export default function DirectorPage() {
           "Орсон цаг": "",
           "Гарсан цаг": "",
           "Зогссон хугацаа": "Нийт дүн:",
-          "Tөлбөр (₮)": exportCashSum + exportCardSum + exportTransferSum,
+          "Төлбөр (₮)": exportCashSum + exportCardSum + exportTransferSum,
           "Бэлэн мөнгө (₮)": "",
           "Карт (₮)": "",
           "Харилцах (₮)": "",
@@ -1487,13 +1478,6 @@ export default function DirectorPage() {
       // Firebase Auth дээр хэрэглэгч үүсгэх
       const userCredential = await createUserWithEmailAndPassword(auth, newDriver.email, newDriver.password)
       const newUserId = userCredential.user.uid
-
-      // Immediately sign out the newly created user to prevent automatic login
-      // NOTE: This will also log out the current director. The director will need to re-login.
-      // For a seamless experience where the director remains logged in, a server-side solution
-      // using Firebase Admin SDK would be required to create users without signing them in.
-      await signOut(auth)
-
       // Database дээр хэрэглэгчийн мэдээлэл хадгалах
       const userData: UserProfile = {
         name: newDriver.name.trim(),
@@ -1507,7 +1491,7 @@ export default function DirectorPage() {
       await set(ref(database, `users/${newUserId}`), userData)
       // Update the alert message to include "director"
       alert(
-        `${selectedRole === "manager" ? "Менежер" : selectedRole === "driver" ? "Бүртгэл" : selectedRole === "director" ? "Захирал" : "Засварчин"} амжилттай бүртгэгдлээ. Та дахин нэвтэрнэ үү.`,
+        `${selectedRole === "manager" ? "Менежер" : selectedRole === "driver" ? "Бүртгэл" : selectedRole === "employee" ? "Засварчин" : "Ажилчин"} амжилттай бүртгэгдлээ`,
       )
       // Form цэвэрлэх
       setNewDriver({
@@ -1518,8 +1502,6 @@ export default function DirectorPage() {
         role: "driver",
         createdAt: "",
       })
-      setIsNamePhoneAutoFilled(false) // Reset auto-fill status
-      router.push("/login") // Redirect to login page after successful registration and logout
     } catch (error: any) {
       console.error("Driver registration error:", error)
       if (error.code === "auth/email-already-in-use") {
@@ -1550,55 +1532,7 @@ export default function DirectorPage() {
     }
   }
 
-  // In handleSaveDriverEdit function:
-  const handleSaveUserEdit = async () => {
-    if (!editingUser || !editUserData.name.trim() || !editUserData.email.trim()) {
-      alert("Нэр болон и-мэйл хаягийг бөглөнө үү")
-      return
-    }
-    setEditLoading(true)
-    try {
-      const updateData: any = {
-        name: editUserData.name.trim(),
-        phone: editUserData.phone.trim(),
-        email: editUserData.email.trim(),
-        updatedAt: new Date().toISOString(),
-      }
-      // Update the user's main profile in the 'users' node
-      await update(ref(database, `users/${editingUser.id}`), updateData)
-
-      // If the user is an employee, also update their record in the 'employees' node
-      if (editingUser.role === "employee") {
-        await update(ref(database, `employees/${editingUser.id}`), updateData)
-      }
-
-      const userType =
-        editingUser.role === "manager"
-          ? "Менежерийн"
-          : editingUser.role === "driver"
-            ? "Бүртгэлийн"
-            : editingUser.role === "director"
-              ? "Захиралын"
-              : "Ажилчны"
-      alert(`${userType} мэдээлэл амжилттай шинэчлэгдлээ`)
-      setShowEditDialog(false)
-      setEditingUser(null)
-    } catch (error) {
-      console.error("Error updating user:", error)
-      const userType =
-        editingUser?.role === "manager"
-          ? "менежерийн"
-          : editingUser?.role === "driver"
-            ? "бүртгэлийн"
-            : editingUser?.role === "director"
-              ? "захиралын"
-              : "ажилчны"
-      alert(`${userType} мэдээлэл шинэчлэхэд алдаа гарлаа`)
-    }
-    setEditLoading(false)
-  }
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: "profile" | "logo" | "background") => {
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: "profile") => {
     const file = e.target.files?.[0]
     if (file) {
       // Check file size (5MB max)
@@ -1611,10 +1545,6 @@ export default function DirectorPage() {
         const base64String = event.target?.result as string
         if (type === "profile") {
           setProfileData({ ...profileData, profileImage: base64String })
-        } else if (type === "logo") {
-          setSiteConfig({ ...siteConfig, siteLogo: base64String })
-        } else if (type === "background") {
-          setSiteConfig({ ...siteConfig, siteBackground: base64String })
         }
       }
       reader.readAsDataURL(file)
@@ -1666,55 +1596,6 @@ export default function DirectorPage() {
       alert("Профайл шинэчлэхэд алдаа гарлаа")
     }
     setLoadingProfile(false)
-  }
-
-  const handleSaveSiteConfig = async () => {
-    if (!siteConfig.siteName.trim()) {
-      alert("Сайтын нэрийг оруулна уу")
-      return
-    }
-    setSiteLoading(true)
-    try {
-      await set(ref(database, "siteConfig"), {
-        siteName: siteConfig.siteName.trim(),
-        siteLogo: siteConfig.siteLogo,
-        siteBackground: siteConfig.siteBackground,
-        updatedAt: new Date().toISOString(),
-      })
-      alert("Сайтын тохиргоо амжилттай хадгалагдлаа")
-      setShowSiteDialog(false)
-    } catch (error) {
-      console.error("Error saving site config:", error)
-      alert("Сайтын тохиргоо хадгалахад алдаа гарлаа")
-    }
-    setSiteLoading(false)
-  }
-
-  const handleSavePricingConfig = async () => {
-    if (
-      pricingConfig.leather.firstHour <= 0 ||
-      pricingConfig.leather.subsequentHour <= 0 ||
-      pricingConfig.spare.firstHour <= 0 ||
-      pricingConfig.spare.subsequentHour <= 0 ||
-      pricingConfig.general.firstHour <= 0 ||
-      pricingConfig.general.subsequentHour <= 0
-    ) {
-      alert("Бүх үнийн мэдээллийг 0-ээс их оруулна уу")
-      return
-    }
-    setPricingLoading(true)
-    try {
-      await set(ref(database, "pricingConfig"), {
-        ...pricingConfig,
-        updatedAt: new Date().toISOString(),
-      })
-      alert("Үнийн тохиргоо амжилттай хадгалагдлаа")
-      setShowPricingDialog(false)
-    } catch (error) {
-      console.error("Error saving pricing config:", error)
-      alert("Үнийн тохиргоо хадгалахад алдаа гарлаа")
-    }
-    setPricingLoading(false)
   }
 
   const handlePaymentStatusUpdate = (record: any) => {
@@ -1781,8 +1662,8 @@ export default function DirectorPage() {
       entryTime: record.entryTime || "",
       exitTime: record.exitTime || "",
       parkingDuration: record.parkingDuration || "",
-      amount: calculateParkingFeeForReport(record),
-      images: record.images || [],
+      amount: calculateParkingFeeForReport(record), // Initialize amount
+      images: record.images || [], // Initialize images
     })
     setShowEditRecordDialog(true)
   }
@@ -1806,21 +1687,6 @@ export default function DirectorPage() {
     }
   }
 
-  const handleDeleteRecord = async (recordId: string, carNumber: string) => {
-    if (!confirm(`${carNumber} дугаартай бүртгэлийг устгахдаа итгэлтэй байна уу?`)) {
-      return
-    }
-    setDeleteRecordLoading(true)
-    try {
-      await remove(ref(database, `parking_records/${recordId}`))
-      alert("Бүртгэл амжилттай устгагдлаа")
-    } catch (error) {
-      console.error("Error deleting record:", error)
-      alert("Бүртгэл устгахад алдаа гарлаа")
-    }
-    setDeleteRecordLoading(false)
-  }
-
   const handleSaveRecordEdit = async () => {
     if (!editingRecord || !editRecordData.carNumber.trim()) {
       alert("Машины дугаарыг оруулна уу")
@@ -1837,8 +1703,8 @@ export default function DirectorPage() {
         entryTime: editRecordData.entryTime,
         exitTime: editRecordData.exitTime,
         parkingDuration: editRecordData.parkingDuration,
-        amount: editRecordData.amount,
-        images: editRecordData.images,
+        amount: editRecordData.amount, // Save amount
+        images: editRecordData.images, // Save images
         updatedAt: new Date().toISOString(),
       }
       await update(ref(database, `parking_records/${editingRecord.id}`), updateData)
@@ -1846,7 +1712,6 @@ export default function DirectorPage() {
       setShowEditRecordDialog(false)
       setEditingRecord(null)
     } catch (error: any) {
-      // Added type for error
       console.error("Error updating record:", error)
       alert("Бүртгэл шинэчлэхэд алдаа гарлаа")
     }
@@ -1942,14 +1807,6 @@ export default function DirectorPage() {
                   <DropdownMenuItem onClick={() => setShowProfileDialog(true)} className="hover:bg-gray-800">
                     <UserIcon className="w-4 h-4 mr-2" />
                     Профайл засах
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setShowSiteDialog(true)} className="hover:bg-gray-800">
-                    <Globe className="w-4 h-4 mr-2" />
-                    Сайтын тохиргоо
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setShowPricingDialog(true)} className="hover:bg-gray-800">
-                    <Settings className="w-4 h-4 mr-2" />
-                    Үнийн тохиргоо
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={handleLogout}
@@ -2259,7 +2116,7 @@ export default function DirectorPage() {
 
             {/* Employee Management Tabs */}
             <Tabs defaultValue="employees" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-4 bg-gray-900 border border-gray-700">
+              <TabsList className="grid w-full grid-cols-3 bg-gray-900 border border-gray-700">
                 <TabsTrigger
                   value="employees"
                   className="text-gray-300 data-[state=active]:bg-gray-700 data-[state=active]:text-white"
@@ -2272,17 +2129,12 @@ export default function DirectorPage() {
                 >
                   Менежерүүд ({managers.length})
                 </TabsTrigger>
-                <TabsTrigger
-                  value="directors"
-                  className="text-gray-300 data-[state=active]:bg-gray-700 data-[state=active]:text-white"
-                >
-                  Захирлууд ({directors.length})
-                </TabsTrigger>
+                {/* Removed Directors TabTrigger */}
                 <TabsTrigger
                   value="drivers"
                   className="text-gray-300 data-[state=active]:bg-gray-700 data-[state=active]:text-white"
                 >
-                  Бүртгэл ({drivers.length})
+                  Бүртгэгч ({drivers.length})
                 </TabsTrigger>
               </TabsList>
 
@@ -2466,96 +2318,6 @@ export default function DirectorPage() {
                 </Card>
               </TabsContent>
 
-              {/* Directors List */}
-              <TabsContent value="directors">
-                <Card className="bg-gray-900 text-white border-gray-700">
-                  <CardHeader>
-                    <CardTitle className="text-white">Захирлуудын жагсаалт</CardTitle>
-                    <CardDescription className="text-gray-400">Бүх захирлуудын мэдээлэл</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {directors.length === 0 ? (
-                      <p className="text-center text-gray-500 py-8">Захирал олдсонгүй</p>
-                    ) : (
-                      <div className="space-y-4">
-                        {directors.map((director) => (
-                          <div
-                            key={director.id}
-                            className="flex items-center justify-between p-4 border border-gray-700 rounded-lg"
-                          >
-                            <div className="flex items-center space-x-4">
-                              <Avatar className="h-12 w-12">
-                                <AvatarImage src={director.profileImage || "/placeholder.svg"} />
-                                <AvatarFallback>
-                                  <Shield className="h-6 w-6" />
-                                </AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <h3 className="font-semibold text-white">{director.name}</h3>
-                                <p className="text-sm text-gray-400">Захирал</p>
-                                <p className="text-sm text-gray-500">{director.phone}</p>
-                                <p className="text-sm text-gray-500">{director.email}</p>
-                              </div>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <Badge
-                                variant={director.active !== false ? "default" : "secondary"}
-                                className={
-                                  director.active !== false ? "bg-green-700 text-white" : "bg-gray-700 text-gray-300"
-                                }
-                              >
-                                {director.active !== false ? "Идэвхтэй" : "Идэвхгүй"}
-                              </Badge>
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="sm" className="text-gray-300 hover:bg-gray-800">
-                                    <Settings className="w-4 h-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="bg-gray-900 text-white border-gray-700">
-                                  <DropdownMenuItem
-                                    onClick={() => handleEditDirector(director)}
-                                    className="hover:bg-gray-800"
-                                  >
-                                    <Edit className="w-4 h-4 mr-2" />
-                                    Засах
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={() =>
-                                      handleToggleDirectorStatus(director.id!, director.active !== false, director.name)
-                                    }
-                                    className="hover:bg-gray-800"
-                                  >
-                                    {director.active !== false ? (
-                                      <>
-                                        <PowerOff className="w-4 h-4 mr-2" />
-                                        Идэвхгүй болгох
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Power className="w-4 h-4 mr-2" />
-                                        Идэвхжүүлэх
-                                      </>
-                                    )}
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={() => handleDeleteDirector(director.id!, director.name)}
-                                    className="text-red-500 hover:bg-gray-800"
-                                  >
-                                    <Trash2 className="w-4 h-4 mr-2" />
-                                    Устгах
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
               {/* Drivers List */}
               <TabsContent value="drivers">
                 <Card className="bg-gray-900 text-white border-gray-700">
@@ -2664,45 +2426,59 @@ export default function DirectorPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="role" className="text-gray-300">
-                        Албан тушаал
+                        Үйлчилгээ
                       </Label>
                       <select
                         id="role"
                         value={selectedRole}
-                        onChange={(e) =>
-                          setSelectedRole(e.target.value as "manager" | "driver" | "employee" | "director")
-                        }
-                        className="w-full px-3 py-2 bg-gray-800 text-white border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        onChange={(e) => {
+                          setSelectedRole(e.target.value as "manager" | "driver" | "employee")
+                          // Reset name and phone when role changes
+                          setNewDriver((prev) => ({ ...prev, name: "", phone: "" }))
+                        }}
+                        className="w-full px-3 py-2 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-800 text-white"
                       >
-                        <option value="employee">Ажилчин</option>
+                        <option value="employee">Засварчин</option>
                         <option value="driver">Бүртгэгч</option>
                         <option value="manager">Менежер</option>
-                        <option value="director">Захирал</option>
                       </select>
+                      <div className="mt-2 p-3 bg-gray-800 rounded-md">
+                        <p className="text-sm text-gray-400">
+                          {selectedRole === "employee" && "Засварчин - Зогсоолын үйл ажиллагаанд оролцох эрхтэй"}
+                          {selectedRole === "driver" && "Бүртгэгч - Машин бүртгэх, гаргах эрхтэй"}
+                          {selectedRole === "manager" && "Менежер - Бүх системийн эрхтэй, тайлан харах боломжтой"}
+                        </p>
+                      </div>
                     </div>
 
                     {selectedRole === "employee" && (
                       <div>
-                        <Label htmlFor="employee-select" className="text-gray-300">
-                          Ажилчин сонгох
+                        <Label htmlFor="selectEmployee" className="text-gray-300">
+                          Засварчин сонгох
                         </Label>
                         <select
-                          id="employee-select"
+                          id="selectEmployee"
+                          value={
+                            newDriver.name
+                              ? availableEmployees.find((emp) => emp.name === newDriver.name)?.id || ""
+                              : ""
+                          }
                           onChange={(e) => handleEmployeeSelection(e.target.value)}
-                          className="w-full px-3 py-2 bg-gray-800 text-white border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-3 py-2 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-800 text-white"
                         >
                           <option value="">Сонгоно уу</option>
                           {availableEmployees.map((employee) => (
                             <option key={employee.id} value={employee.id}>
-                              {employee.name} - {employee.position}
+                              {employee.name}
                             </option>
                           ))}
                         </select>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Эндээс сонгосноор нэр болон утасны дугаар автоматаар бөглөгдөнө.
+                        </p>
                       </div>
                     )}
-                  </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="name" className="text-gray-300">
                         Нэр
@@ -2712,12 +2488,12 @@ export default function DirectorPage() {
                         type="text"
                         value={newDriver.name}
                         onChange={(e) => setNewDriver({ ...newDriver, name: e.target.value })}
-                        className="bg-gray-800 text-white border-gray-700"
-                        placeholder="Нэрээ оруулна уу"
+                        placeholder="Бүтэн нэрээ оруулна уу"
                         required
-                        disabled={isNamePhoneAutoFilled}
+                        className="bg-gray-800 text-white border-gray-700"
                       />
                     </div>
+
                     <div>
                       <Label htmlFor="phone" className="text-gray-300">
                         Утасны дугаар
@@ -2727,14 +2503,11 @@ export default function DirectorPage() {
                         type="tel"
                         value={newDriver.phone}
                         onChange={(e) => setNewDriver({ ...newDriver, phone: e.target.value })}
+                        placeholder="99112233"
                         className="bg-gray-800 text-white border-gray-700"
-                        placeholder="Утасны дугаараа оруулна уу"
-                        disabled={isNamePhoneAutoFilled}
                       />
                     </div>
-                  </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="email" className="text-gray-300">
                         И-мэйл хаяг
@@ -2744,11 +2517,12 @@ export default function DirectorPage() {
                         type="email"
                         value={newDriver.email}
                         onChange={(e) => setNewDriver({ ...newDriver, email: e.target.value })}
-                        className="bg-gray-800 text-white border-gray-700"
-                        placeholder="И-мэйл хаягаа оруулна уу"
+                        placeholder="example@email.com"
                         required
+                        className="bg-gray-800 text-white border-gray-700"
                       />
                     </div>
+
                     <div>
                       <Label htmlFor="password" className="text-gray-300">
                         Нууц үг
@@ -2758,10 +2532,10 @@ export default function DirectorPage() {
                         type="password"
                         value={newDriver.password}
                         onChange={(e) => setNewDriver({ ...newDriver, password: e.target.value })}
-                        className="bg-gray-800 text-white border-gray-700"
-                        placeholder="Нууц үгээ оруулна уу"
+                        placeholder="Хамгийн багадаа 6 тэмдэгт"
                         required
                         minLength={6}
+                        className="bg-gray-800 text-white border-gray-700"
                       />
                     </div>
                   </div>
@@ -2779,13 +2553,8 @@ export default function DirectorPage() {
                     ) : (
                       <>
                         <UserPlus className="w-4 h-4 mr-2" />
-                        {selectedRole === "manager"
-                          ? "Менежер бүртгэх"
-                          : selectedRole === "driver"
-                            ? "Бүртгэгч бүртгэх"
-                            : selectedRole === "director"
-                              ? "Захирал бүртгэх"
-                              : "Ажилчин бүртгэх"}
+                        {selectedRole === "manager" ? "Менежер" : selectedRole === "driver" ? "Бүртгэгч" : "Ажилчин"}{" "}
+                        бүртгэх
                       </>
                     )}
                   </Button>
@@ -3124,14 +2893,13 @@ export default function DirectorPage() {
                             )}
                           </th>
                           <th className="text-left p-1 text-gray-300 text-xs">Зураг</th>
-                          <th className="text-left p-1 text-gray-300 text-xs">Үйлдэл</th>
                         </tr>
                       </thead>
                       <tbody>
                         {Object.keys(groupRecordsByDate(getSortedRecords())).map((dateKey) => (
                           <React.Fragment key={dateKey}>
                             <tr className="bg-gray-800">
-                              <td colSpan={13} className="p-2 text-center font-semibold text-lg text-white">
+                              <td colSpan={12} className="p-2 text-center font-semibold text-lg text-white">
                                 {dateKey}
                               </td>
                             </tr>
@@ -3174,17 +2942,25 @@ export default function DirectorPage() {
                                       </div>
                                     )}
                                   </td>
+
                                   <td className="p-1">
-                                    <Badge
-                                      variant={record.paymentStatus === "paid" ? "default" : "secondary"}
-                                      className={
-                                        record.paymentStatus === "paid"
-                                          ? "bg-green-700 text-white text-xs px-1 py-0"
-                                          : "bg-red-700 text-white text-xs px-1 py-0"
-                                      }
-                                    >
-                                      {record.paymentStatus === "paid" ? "Төлсөн" : "Төлөөгүй"}
-                                    </Badge>
+                                    {record.paymentStatus === "paid" ? (
+                                      <Badge className="bg-green-600 text-white text-xs px-2 py-1 rounded-md font-medium">
+                                        Төлсөн
+                                      </Badge>
+                                    ) : (
+                                      <div className="flex items-center space-x-2">
+                                        <span className="text-gray-400 text-xs font-medium">Төлөөгүй</span>
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() => handlePaymentStatusUpdate(record)}
+                                          className="bg-gray-700 text-white border-gray-600 hover:bg-gray-600 text-xs px-2 py-1 h-6"
+                                        >
+                                          Төлбөр
+                                        </Button>
+                                      </div>
+                                    )}
                                   </td>
                                   <td className="p-1">
                                     {record.images && record.images.length > 0 ? (
@@ -3201,35 +2977,6 @@ export default function DirectorPage() {
                                       <span className="text-gray-500 text-xs">-</span>
                                     )}
                                   </td>
-                                  <td className="p-1">
-                                    <div className="flex space-x-1">
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => handleEditRecord(record)}
-                                        className="text-blue-400 hover:text-blue-300 hover:bg-gray-800 p-1 h-6 w-6"
-                                      >
-                                        <Edit className="w-3 h-3" />
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => handlePaymentStatusUpdate(record)}
-                                        className="text-green-400 hover:text-green-300 hover:bg-gray-800 p-1 h-6 w-6"
-                                      >
-                                        <TrendingUp className="w-3 h-3" />
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => handleDeleteRecord(record.id, record.carNumber)}
-                                        className="text-red-400 hover:text-red-300 hover:bg-gray-800 p-1 h-6 w-6"
-                                        disabled={deleteRecordLoading}
-                                      >
-                                        <Trash2 className="w-3 h-3" />
-                                      </Button>
-                                    </div>
-                                  </td>
                                 </tr>
                               )
                             })}
@@ -3245,159 +2992,39 @@ export default function DirectorPage() {
         </Tabs>
       </div>
 
-      {/* Add Employee Dialog */}
-      <Dialog open={showEmployeeDialog} onOpenChange={setShowEmployeeDialog}>
-        <DialogContent className="bg-gray-900 text-white border-gray-700">
-          <DialogHeader>
-            <DialogTitle className="text-white">Ажилчин нэмэх</DialogTitle>
-            <DialogDescription className="text-gray-400">Шинэ ажилчны мэдээллийг оруулна уу</DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleAddEmployee} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="employeeName" className="text-gray-300">
-                  Нэр
-                </Label>
-                <Input
-                  id="employeeName"
-                  type="text"
-                  value={newEmployee.name}
-                  onChange={(e) => setNewEmployee({ ...newEmployee, name: e.target.value })}
-                  className="bg-gray-800 text-white border-gray-700"
-                  placeholder="Ажилчны нэр"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="employeePosition" className="text-gray-300">
-                  Албан тушаал
-                </Label>
-                <Input
-                  id="employeePosition"
-                  type="text"
-                  value={newEmployee.position}
-                  onChange={(e) => setNewEmployee({ ...newEmployee, position: e.target.value })}
-                  className="bg-gray-800 text-white border-gray-700"
-                  placeholder="Албан тушаал"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="employeePhone" className="text-gray-300">
-                  Утасны дугаар
-                </Label>
-                <Input
-                  id="employeePhone"
-                  type="tel"
-                  value={newEmployee.phone}
-                  onChange={(e) => setNewEmployee({ ...newEmployee, phone: e.target.value })}
-                  className="bg-gray-800 text-white border-gray-700"
-                  placeholder="Утасны дугаар"
-                />
-              </div>
-              <div>
-                <Label htmlFor="employeeStartDate" className="text-gray-300">
-                  Ажилд орсон огноо
-                </Label>
-                <Input
-                  id="employeeStartDate"
-                  type="date"
-                  value={newEmployee.startDate}
-                  onChange={(e) => setNewEmployee({ ...newEmployee, startDate: e.target.value })}
-                  className="bg-gray-800 text-white border-gray-700"
-                />
-              </div>
-            </div>
-            <div>
-              <Label htmlFor="employeeImage" className="text-gray-300">
-                Профайл зураг
-              </Label>
-              <Input
-                id="employeeImage"
-                type="file"
-                accept="image/*"
-                onChange={handleEmployeeImageUpload}
-                className="bg-gray-800 text-white border-gray-700"
-              />
-              {newEmployee.profileImage && (
-                <div className="mt-2">
-                  <img
-                    src={newEmployee.profileImage || "/placeholder.svg"}
-                    alt="Preview"
-                    className="w-20 h-20 object-cover rounded-full"
-                  />
-                </div>
-              )}
-            </div>
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setShowEmployeeDialog(false)}
-                className="bg-gray-800 text-white border-gray-700 hover:bg-gray-700"
-              >
-                Цуцлах
-              </Button>
-              <Button type="submit" disabled={employeeLoading} className="bg-blue-600 text-white hover:bg-blue-700">
-                {employeeLoading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Нэмж байна...
-                  </>
-                ) : (
-                  "Ажилчин нэмэх"
-                )}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
       {/* Edit User Dialog */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
         <DialogContent className="bg-gray-900 text-white border-gray-700">
           <DialogHeader>
-            <DialogTitle className="text-white">
-              {editingUser?.role === "manager"
-                ? "Менежер засах"
-                : editingUser?.role === "driver"
-                  ? "Бүртгэгч засах"
-                  : editingUser?.role === "director"
-                    ? "Захирал засах"
-                    : "Ажилчин засах"}
-            </DialogTitle>
+            <DialogTitle className="text-white">Хэрэглэгч засах</DialogTitle>
             <DialogDescription className="text-gray-400">Хэрэглэгчийн мэдээллийг шинэчлэх</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="editName" className="text-gray-300">
-                  Нэр
-                </Label>
-                <Input
-                  id="editName"
-                  type="text"
-                  value={editUserData.name}
-                  onChange={(e) => setEditUserData({ ...editUserData, name: e.target.value })}
-                  className="bg-gray-800 text-white border-gray-700"
-                  placeholder="Нэр"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="editPhone" className="text-gray-300">
-                  Утасны дугаар
-                </Label>
-                <Input
-                  id="editPhone"
-                  type="tel"
-                  value={editUserData.phone}
-                  onChange={(e) => setEditUserData({ ...editUserData, phone: e.target.value })}
-                  className="bg-gray-800 text-white border-gray-700"
-                  placeholder="Утасны дугаар"
-                />
-              </div>
+            <div>
+              <Label htmlFor="editName" className="text-gray-300">
+                Нэр
+              </Label>
+              <Input
+                id="editName"
+                type="text"
+                value={editUserData.name}
+                onChange={(e) => setEditUserData({ ...editUserData, name: e.target.value })}
+                placeholder="Бүтэн нэрээ оруулна уу"
+                className="bg-gray-800 text-white border-gray-700"
+              />
+            </div>
+            <div>
+              <Label htmlFor="editPhone" className="text-gray-300">
+                Утасны дугаар
+              </Label>
+              <Input
+                id="editPhone"
+                type="tel"
+                value={editUserData.phone}
+                onChange={(e) => setEditUserData({ ...editUserData, phone: e.target.value })}
+                placeholder="99112233"
+                className="bg-gray-800 text-white border-gray-700"
+              />
             </div>
             <div>
               <Label htmlFor="editEmail" className="text-gray-300">
@@ -3408,9 +3035,8 @@ export default function DirectorPage() {
                 type="email"
                 value={editUserData.email}
                 onChange={(e) => setEditUserData({ ...editUserData, email: e.target.value })}
+                placeholder="example@email.com"
                 className="bg-gray-800 text-white border-gray-700"
-                placeholder="И-мэйл хаяг"
-                required
               />
             </div>
           </div>
@@ -3424,8 +3050,8 @@ export default function DirectorPage() {
             </Button>
             <Button
               onClick={handleSaveUserEdit}
-              disabled={editLoading}
               className="bg-blue-600 text-white hover:bg-blue-700"
+              disabled={editLoading}
             >
               {editLoading ? (
                 <>
@@ -3440,42 +3066,142 @@ export default function DirectorPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Add Employee Dialog */}
+      <Dialog open={showEmployeeDialog} onOpenChange={setShowEmployeeDialog}>
+        <DialogContent className="bg-gray-900 text-white border-gray-700">
+          <DialogHeader>
+            <DialogTitle className="text-white">Ажилчин нэмэх</DialogTitle>
+            <DialogDescription className="text-gray-400">Шинэ ажилчны мэдээллийг оруулна уу</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleAddEmployee} className="space-y-4">
+            <div>
+              <Label htmlFor="employeeName" className="text-gray-300">
+                Нэр
+              </Label>
+              <Input
+                id="employeeName"
+                type="text"
+                value={newEmployee.name}
+                onChange={(e) => setNewEmployee({ ...newEmployee, name: e.target.value })}
+                placeholder="Бүтэн нэрээ оруулна уу"
+                required
+                className="bg-gray-800 text-white border-gray-700"
+              />
+            </div>
+            <div>
+              <Label htmlFor="employeePosition" className="text-gray-300">
+                Албан тушаал
+              </Label>
+              <Input
+                id="employeePosition"
+                type="text"
+                value={newEmployee.position}
+                onChange={(e) => setNewEmployee({ ...newEmployee, position: e.target.value })}
+                placeholder="Албан тушаал"
+                className="bg-gray-800 text-white border-gray-700"
+              />
+            </div>
+            <div>
+              <Label htmlFor="employeePhone" className="text-gray-300">
+                Утасны дугаар
+              </Label>
+              <Input
+                id="employeePhone"
+                type="tel"
+                value={newEmployee.phone}
+                onChange={(e) => setNewEmployee({ ...newEmployee, phone: e.target.value })}
+                placeholder="99112233"
+                className="bg-gray-800 text-white border-gray-700"
+              />
+            </div>
+            <div>
+              <Label htmlFor="employeeStartDate" className="text-gray-300">
+                Ажилд орсон огноо
+              </Label>
+              <Input
+                id="employeeStartDate"
+                type="date"
+                value={newEmployee.startDate}
+                onChange={(e) => setNewEmployee({ ...newEmployee, startDate: e.target.value })}
+                className="bg-gray-800 text-white border-gray-700"
+              />
+            </div>
+            <div>
+              <Label htmlFor="employeeImage" className="text-gray-300">
+                Профайл зураг
+              </Label>
+              <Input
+                id="employeeImage"
+                type="file"
+                accept="image/*"
+                onChange={handleEmployeeImageUpload}
+                className="bg-gray-800 text-white border-gray-700"
+              />
+              {newEmployee.profileImage && (
+                <Avatar className="h-12 w-12 mt-2">
+                  <AvatarImage src={newEmployee.profileImage || "/placeholder.svg"} />
+                  <AvatarFallback>
+                    <UserIcon className="h-6 w-6" />
+                  </AvatarFallback>
+                </Avatar>
+              )}
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setShowEmployeeDialog(false)}
+                className="bg-gray-800 text-white border-gray-700 hover:bg-gray-700"
+              >
+                Цуцлах
+              </Button>
+              <Button type="submit" className="bg-blue-600 text-white hover:bg-blue-700" disabled={employeeLoading}>
+                {employeeLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Нэмж байна...
+                  </>
+                ) : (
+                  "Нэмэх"
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       {/* Profile Dialog */}
       <Dialog open={showProfileDialog} onOpenChange={setShowProfileDialog}>
         <DialogContent className="bg-gray-900 text-white border-gray-700">
           <DialogHeader>
             <DialogTitle className="text-white">Профайл засах</DialogTitle>
-            <DialogDescription className="text-gray-400">Өөрийн мэдээллийг шинэчлэх</DialogDescription>
+            <DialogDescription className="text-gray-400">Мэдээллээ шинэчлэх</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="profileName" className="text-gray-300">
-                  Нэр
-                </Label>
-                <Input
-                  id="profileName"
-                  type="text"
-                  value={profileData.name}
-                  onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
-                  className="bg-gray-800 text-white border-gray-700"
-                  placeholder="Нэр"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="profilePhone" className="text-gray-300">
-                  Утасны дугаар
-                </Label>
-                <Input
-                  id="profilePhone"
-                  type="tel"
-                  value={profileData.phone}
-                  onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
-                  className="bg-gray-800 text-white border-gray-700"
-                  placeholder="Утасны дугаар"
-                />
-              </div>
+            <div>
+              <Label htmlFor="profileName" className="text-gray-300">
+                Нэр
+              </Label>
+              <Input
+                id="profileName"
+                type="text"
+                value={profileData.name}
+                onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
+                placeholder="Бүтэн нэрээ оруулна уу"
+                className="bg-gray-800 text-white border-gray-700"
+              />
+            </div>
+            <div>
+              <Label htmlFor="profilePhone" className="text-gray-300">
+                Утасны дугаар
+              </Label>
+              <Input
+                id="profilePhone"
+                type="tel"
+                value={profileData.phone}
+                onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
+                placeholder="99112233"
+                className="bg-gray-800 text-white border-gray-700"
+              />
             </div>
             <div>
               <Label htmlFor="profileEmail" className="text-gray-300">
@@ -3486,9 +3212,8 @@ export default function DirectorPage() {
                 type="email"
                 value={profileData.email}
                 onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
+                placeholder="example@email.com"
                 className="bg-gray-800 text-white border-gray-700"
-                placeholder="И-мэйл хаяг"
-                required
               />
             </div>
             <div>
@@ -3503,14 +3228,70 @@ export default function DirectorPage() {
                 className="bg-gray-800 text-white border-gray-700"
               />
               {profileData.profileImage && (
-                <div className="mt-2">
-                  <img
-                    src={profileData.profileImage || "/placeholder.svg"}
-                    alt="Profile Preview"
-                    className="w-20 h-20 object-cover rounded-full"
-                  />
-                </div>
+                <Avatar className="h-12 w-12 mt-2">
+                  <AvatarImage src={profileData.profileImage || "/placeholder.svg"} />
+                  <AvatarFallback>
+                    <UserIcon className="h-6 w-6" />
+                  </AvatarFallback>
+                </Avatar>
               )}
+            </div>
+            <div>
+              <Label htmlFor="currentPassword" className="text-gray-300">
+                Одоогийн нууц үг
+              </Label>
+              <Input
+                id="currentPassword"
+                type={showPassword ? "text" : "password"}
+                value={passwordData.currentPassword}
+                onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                placeholder="Нууц үгээ оруулна уу"
+                className="bg-gray-800 text-white border-gray-700"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowPassword(!showPassword)}
+                className="text-gray-300 hover:bg-gray-800 mt-1"
+              >
+                {showPassword ? "Нуух" : "Харах"}
+              </Button>
+            </div>
+            <div>
+              <Label htmlFor="newPassword" className="text-gray-300">
+                Шинэ нууц үг
+              </Label>
+              <Input
+                id="newPassword"
+                type={showConfirmPassword ? "text" : "password"}
+                value={passwordData.newPassword}
+                onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                placeholder="Шинэ нууц үг"
+                className="bg-gray-800 text-white border-gray-700"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="text-gray-300 hover:bg-gray-800 mt-1"
+              >
+                {showConfirmPassword ? "Нуух" : "Харах"}
+              </Button>
+            </div>
+            <div>
+              <Label htmlFor="confirmPassword" className="text-gray-300">
+                Нууц үг баталгаажуулах
+              </Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                value={passwordData.confirmPassword}
+                onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                placeholder="Нууц үгээ дахин оруулна уу"
+                className="bg-gray-800 text-white border-gray-700"
+              />
             </div>
           </div>
           <DialogFooter>
@@ -3523,8 +3304,8 @@ export default function DirectorPage() {
             </Button>
             <Button
               onClick={handleSaveProfile}
-              disabled={profileLoading}
               className="bg-blue-600 text-white hover:bg-blue-700"
+              disabled={profileLoading}
             >
               {profileLoading ? (
                 <>
@@ -3539,415 +3320,54 @@ export default function DirectorPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Site Configuration Dialog */}
-      <Dialog open={showSiteDialog} onOpenChange={setShowSiteDialog}>
-        <DialogContent className="bg-gray-900 text-white border-gray-700">
-          <DialogHeader>
-            <DialogTitle className="text-white">Сайтын тохиргоо</DialogTitle>
-            <DialogDescription className="text-gray-400">Сайтын ерөнхий тохиргоог өөрчлөх</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="siteName" className="text-gray-300">
-                Сайтын нэр
-              </Label>
-              <Input
-                id="siteName"
-                type="text"
-                value={siteConfig.siteName}
-                onChange={(e) => setSiteConfig({ ...siteConfig, siteName: e.target.value })}
-                className="bg-gray-800 text-white border-gray-700"
-                placeholder="Сайтын нэр"
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="siteLogo" className="text-gray-300">
-                Сайтын лого
-              </Label>
-              <Input
-                id="siteLogo"
-                type="file"
-                accept="image/*"
-                onChange={(e) => handleImageUpload(e, "logo")}
-                className="bg-gray-800 text-white border-gray-700"
-              />
-              {siteConfig.siteLogo && (
-                <div className="mt-2">
-                  <img
-                    src={siteConfig.siteLogo || "/placeholder.svg"}
-                    alt="Logo Preview"
-                    className="w-20 h-20 object-cover rounded"
-                  />
-                </div>
-              )}
-            </div>
-            <div>
-              <Label htmlFor="siteBackground" className="text-gray-300">
-                Арын зураг
-              </Label>
-              <Input
-                id="siteBackground"
-                type="file"
-                accept="image/*"
-                onChange={(e) => handleImageUpload(e, "background")}
-                className="bg-gray-800 text-white border-gray-700"
-              />
-              {siteConfig.siteBackground && (
-                <div className="mt-2">
-                  <img
-                    src={siteConfig.siteBackground || "/placeholder.svg"}
-                    alt="Background Preview"
-                    className="w-32 h-20 object-cover rounded"
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowSiteDialog(false)}
-              className="bg-gray-800 text-white border-gray-700 hover:bg-gray-700"
-            >
-              Цуцлах
-            </Button>
-            <Button
-              onClick={handleSaveSiteConfig}
-              disabled={siteLoading}
-              className="bg-blue-600 text-white hover:bg-blue-700"
-            >
-              {siteLoading ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Хадгалж байна...
-                </>
-              ) : (
-                "Хадгалах"
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Pricing Configuration Dialog */}
-      <Dialog open={showPricingDialog} onOpenChange={setShowPricingDialog}>
-        <DialogContent className="bg-gray-900 text-white border-gray-700">
-          <DialogHeader>
-            <DialogTitle className="text-white">Үнийн тохиргоо</DialogTitle>
-            <DialogDescription className="text-gray-400">Зогсоолын үнийн тохиргоог өөрчлөх</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-semibold text-white mb-3">Тен</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="leatherFirst" className="text-gray-300">
-                    Эхний цагийн үнэ (₮)
-                  </Label>
-                  <Input
-                    id="leatherFirst"
-                    type="number"
-                    value={pricingConfig.leather.firstHour}
-                    onChange={(e) =>
-                      setPricingConfig({
-                        ...pricingConfig,
-                        leather: { ...pricingConfig.leather, firstHour: Number(e.target.value) },
-                      })
-                    }
-                    className="bg-gray-800 text-white border-gray-700"
-                    min="0"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="leatherSubsequent" className="text-gray-300">
-                    Дараагийн цагийн үнэ (₮)
-                  </Label>
-                  <Input
-                    id="leatherSubsequent"
-                    type="number"
-                    value={pricingConfig.leather.subsequentHour}
-                    onChange={(e) =>
-                      setPricingConfig({
-                        ...pricingConfig,
-                        leather: { ...pricingConfig.leather, subsequentHour: Number(e.target.value) },
-                      })
-                    }
-                    className="bg-gray-800 text-white border-gray-700"
-                    min="0"
-                    required
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-semibold text-white mb-3">Сафари</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="spareFirst" className="text-gray-300">
-                    Эхний цагийн үнэ (₮)
-                  </Label>
-                  <Input
-                    id="spareFirst"
-                    type="number"
-                    value={pricingConfig.spare.firstHour}
-                    onChange={(e) =>
-                      setPricingConfig({
-                        ...pricingConfig,
-                        spare: { ...pricingConfig.spare, firstHour: Number(e.target.value) },
-                      })
-                    }
-                    className="bg-gray-800 text-white border-gray-700"
-                    min="0"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="spareSubsequent" className="text-gray-300">
-                    Дараагийн цагийн үнэ (₮)
-                  </Label>
-                  <Input
-                    id="spareSubsequent"
-                    type="number"
-                    value={pricingConfig.spare.subsequentHour}
-                    onChange={(e) =>
-                      setPricingConfig({
-                        ...pricingConfig,
-                        spare: { ...pricingConfig.spare, subsequentHour: Number(e.target.value) },
-                      })
-                    }
-                    className="bg-gray-800 text-white border-gray-700"
-                    min="0"
-                    required
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-semibold text-white mb-3">Талбай</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="generalFirst" className="text-gray-300">
-                    Эхний цагийн үнэ (₮)
-                  </Label>
-                  <Input
-                    id="generalFirst"
-                    type="number"
-                    value={pricingConfig.general.firstHour}
-                    onChange={(e) =>
-                      setPricingConfig({
-                        ...pricingConfig,
-                        general: { ...pricingConfig.general, firstHour: Number(e.target.value) },
-                      })
-                    }
-                    className="bg-gray-800 text-white border-gray-700"
-                    min="0"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="generalSubsequent" className="text-gray-300">
-                    Дараагийн цагийн үнэ (₮)
-                  </Label>
-                  <Input
-                    id="generalSubsequent"
-                    type="number"
-                    value={pricingConfig.general.subsequentHour}
-                    onChange={(e) =>
-                      setPricingConfig({
-                        ...pricingConfig,
-                        general: { ...pricingConfig.general, subsequentHour: Number(e.target.value) },
-                      })
-                    }
-                    className="bg-gray-800 text-white border-gray-700"
-                    min="0"
-                    required
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowPricingDialog(false)}
-              className="bg-gray-800 text-white border-gray-700 hover:bg-gray-700"
-            >
-              Цуцлах
-            </Button>
-            <Button
-              onClick={handleSavePricingConfig}
-              disabled={pricingLoading}
-              className="bg-blue-600 text-white hover:bg-blue-700"
-            >
-              {pricingLoading ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Хадгалж байна...
-                </>
-              ) : (
-                "Хадгалах"
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Date Range Export Dialog */}
-      <Dialog open={showDateRangeDialog} onOpenChange={setShowDateRangeDialog}>
-        <DialogContent className="bg-gray-900 text-white border-gray-700">
-          <DialogHeader>
-            <DialogTitle className="text-white">Хугацаагаар Excel татах</DialogTitle>
-            <DialogDescription className="text-gray-400">
-              Тодорхой хугацааны бүртгэлийг Excel файлаар татах
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="dateRangeStart" className="text-gray-300">
-                  Эхлэх огноо
-                </Label>
-                <Input
-                  id="dateRangeStart"
-                  type="date"
-                  value={dateRangeStart}
-                  onChange={(e) => setDateRangeStart(e.target.value)}
-                  className="bg-gray-800 text-white border-gray-700"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="dateRangeEnd" className="text-gray-300">
-                  Дуусах огноо
-                </Label>
-                <Input
-                  id="dateRangeEnd"
-                  type="date"
-                  value={dateRangeEnd}
-                  onChange={(e) => setDateRangeEnd(e.target.value)}
-                  className="bg-gray-800 text-white border-gray-700"
-                  required
-                />
-              </div>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="deleteAfterExport"
-                checked={deleteAfterExport}
-                onCheckedChange={(checked) => setDeleteAfterExport(checked as boolean)}
-              />
-              <Label htmlFor="deleteAfterExport" className="text-gray-300">
-                Татсаны дараа бүртгэлийг өгөгдлийн сангаас устгах
-              </Label>
-            </div>
-            {deleteAfterExport && (
-              <div className="bg-red-900 border border-red-700 rounded-md p-3">
-                <p className="text-red-300 text-sm">
-                  <strong>Анхааруулга:</strong> Энэ үйлдэл нь сонгосон хугацааны бүх бүртгэлийг өгөгдлийн сангаас
-                  бүрмөсөн устгана. Энэ үйлдлийг буцаах боломжгүй!
-                </p>
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowDateRangeDialog(false)}
-              className="bg-gray-800 text-white border-gray-700 hover:bg-gray-700"
-            >
-              Цуцлах
-            </Button>
-            <Button
-              onClick={handleDateRangeExport}
-              disabled={exportLoading}
-              className="bg-blue-600 text-white hover:bg-blue-700"
-            >
-              {exportLoading ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Татаж байна...
-                </>
-              ) : (
-                <>
-                  <Download className="w-4 h-4 mr-2" />
-                  Excel татах
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       {/* Payment Status Dialog */}
-      <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
+      <Dialog open={showPaymentDialog} onOpenChange={() => setShowPaymentDialog(false)}>
         <DialogContent className="bg-gray-900 text-white border-gray-700">
           <DialogHeader>
-            <DialogTitle className="text-white">Төлбөрийн мэдээлэл шинэчлэх</DialogTitle>
-            <DialogDescription className="text-gray-400">
-              {selectedRecord?.carNumber} дугаартай машины төлбөрийн мэдээллийг шинэчлэх
-            </DialogDescription>
+            <DialogTitle className="text-white">Төлбөрийн төлөв шинэчлэх</DialogTitle>
+            <DialogDescription className="text-gray-400">Төлбөрийн мэдээллийг оруулна уу</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="totalAmount" className="text-gray-300">
-                Нийт төлбөр
+              <Label htmlFor="cashAmount" className="text-gray-300">
+                Бэлэн мөнгө (₮)
               </Label>
               <Input
-                id="totalAmount"
-                type="text"
-                value={`₮${initialAmountToPay.toLocaleString()}`}
-                className="bg-gray-800 text-white border-gray-700 font-bold"
-                readOnly
+                id="cashAmount"
+                type="number"
+                value={cashAmountInput}
+                onChange={(e) => setCashAmountInput(Number(e.target.value))}
+                placeholder="0"
+                className="bg-gray-800 text-white border-gray-700"
               />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="cashAmount" className="text-gray-300">
-                  Бэлэн мөнгө (₮)
-                </Label>
-                <Input
-                  id="cashAmount"
-                  type="number"
-                  value={cashAmountInput}
-                  onChange={(e) => setCashAmountInput(Number(e.target.value))}
-                  className="bg-gray-800 text-white border-gray-700"
-                  min="0"
-                />
-              </div>
-              <div>
-                <Label htmlFor="cardAmount" className="text-gray-300">
-                  Карт (₮)
-                </Label>
-                <Input
-                  id="cardAmount"
-                  type="number"
-                  value={cardAmountInput}
-                  onChange={(e) => setCardAmountInput(Number(e.target.value))}
-                  className="bg-gray-800 text-white border-gray-700"
-                  min="0"
-                />
-              </div>
-              <div>
-                <Label htmlFor="transferAmount" className="text-gray-300">
-                  Харилцах (₮)
-                </Label>
-                <Input
-                  id="transferAmount"
-                  type="number"
-                  value={transferAmountInput}
-                  onChange={(e) => setTransferAmountInput(Number(e.target.value))}
-                  className="bg-gray-800 text-white border-gray-700"
-                  min="0"
-                />
-              </div>
+            <div>
+              <Label htmlFor="cardAmount" className="text-gray-300">
+                Карт (₮)
+              </Label>
+              <Input
+                id="cardAmount"
+                type="number"
+                value={cardAmountInput}
+                onChange={(e) => setCardAmountInput(Number(e.target.value))}
+                placeholder="0"
+                className="bg-gray-800 text-white border-gray-700"
+              />
             </div>
-            <div className="text-right text-lg font-semibold text-white">
-              Нийт оруулсан дүн: ₮{(cashAmountInput + cardAmountInput + transferAmountInput).toLocaleString()}
+            <div>
+              <Label htmlFor="transferAmount" className="text-gray-300">
+                Харилцах (₮)
+              </Label>
+              <Input
+                id="transferAmount"
+                type="number"
+                value={transferAmountInput}
+                onChange={(e) => setTransferAmountInput(Number(e.target.value))}
+                placeholder="0"
+                className="bg-gray-800 text-white border-gray-700"
+              />
             </div>
+            <div className="text-gray-400">Төлөх дүн: ₮{initialAmountToPay.toLocaleString()}</div>
           </div>
           <DialogFooter>
             <Button
@@ -3959,8 +3379,8 @@ export default function DirectorPage() {
             </Button>
             <Button
               onClick={handleSavePaymentStatus}
+              className="bg-blue-600 text-white hover:bg-blue-700"
               disabled={paymentLoading}
-              className="bg-green-600 text-white hover:bg-green-700"
             >
               {paymentLoading ? (
                 <>
@@ -3976,114 +3396,123 @@ export default function DirectorPage() {
       </Dialog>
 
       {/* Edit Record Dialog */}
-      <Dialog open={showEditRecordDialog} onOpenChange={setShowEditRecordDialog}>
+      <Dialog open={showEditRecordDialog} onOpenChange={() => setShowEditRecordDialog(false)}>
         <DialogContent className="bg-gray-900 text-white border-gray-700">
           <DialogHeader>
             <DialogTitle className="text-white">Бүртгэл засах</DialogTitle>
             <DialogDescription className="text-gray-400">Бүртгэлийн мэдээллийг шинэчлэх</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="editCarNumber" className="text-gray-300">
-                  Машины дугаар
-                </Label>
-                <Input
-                  id="editCarNumber"
-                  type="text"
-                  value={editRecordData.carNumber}
-                  onChange={(e) => setEditRecordData({ ...editRecordData, carNumber: e.target.value })}
-                  className="bg-gray-800 text-white border-gray-700"
-                  placeholder="Машины дугаар"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="editMechanicName" className="text-gray-300">
-                  Засварчин
-                </Label>
-                <Input
-                  id="editMechanicName"
-                  type="text"
-                  value={editRecordData.mechanicName}
-                  onChange={(e) => setEditRecordData({ ...editRecordData, mechanicName: e.target.value })}
-                  className="bg-gray-800 text-white border-gray-700"
-                  placeholder="Засварчин"
-                />
-              </div>
+            <div>
+              <Label htmlFor="editCarNumber" className="text-gray-300">
+                Машины дугаар
+              </Label>
+              <Input
+                id="editCarNumber"
+                type="text"
+                value={editRecordData.carNumber}
+                onChange={(e) => setEditRecordData({ ...editRecordData, carNumber: e.target.value })}
+                placeholder="Машины дугаарыг оруулна уу"
+                className="bg-gray-800 text-white border-gray-700"
+              />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="editCarBrand" className="text-gray-300">
-                  Машины марк
-                </Label>
-                <Input
-                  id="editCarBrand"
-                  type="text"
-                  value={editRecordData.carBrand}
-                  onChange={(e) => setEditRecordData({ ...editRecordData, carBrand: e.target.value })}
-                  className="bg-gray-800 text-white border-gray-700"
-                  placeholder="Машины марк"
-                />
-              </div>
-              <div>
-                <Label htmlFor="editParkingArea" className="text-gray-300">
-                  Талбай
-                </Label>
-                <select
-                  id="editParkingArea"
-                  value={editRecordData.parkingArea}
-                  onChange={(e) => setEditRecordData({ ...editRecordData, parkingArea: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-800 text-white border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="general">Талбай</option>
-                  <option value="leather">Тен</option>
-                  <option value="spare">Сафари</option>
-                </select>
-              </div>
+            <div>
+              <Label htmlFor="editMechanicName" className="text-gray-300">
+                Засварчин
+              </Label>
+              <Input
+                id="editMechanicName"
+                type="text"
+                value={editRecordData.mechanicName}
+                onChange={(e) => setEditRecordData({ ...editRecordData, mechanicName: e.target.value })}
+                placeholder="Засварчны нэрийг оруулна уу"
+                className="bg-gray-800 text-white border-gray-700"
+              />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="editEntryTime" className="text-gray-300">
-                  Орсон цаг
-                </Label>
-                <Input
-                  id="editEntryTime"
-                  type="datetime-local"
-                  value={editRecordData.entryTime}
-                  onChange={(e) => setEditRecordData({ ...editRecordData, entryTime: e.target.value })}
-                  className="bg-gray-800 text-white border-gray-700"
-                />
-              </div>
-              <div>
-                <Label htmlFor="editExitTime" className="text-gray-300">
-                  Гарсан цаг
-                </Label>
-                <Input
-                  id="editExitTime"
-                  type="datetime-local"
-                  value={editRecordData.exitTime}
-                  onChange={(e) => setEditRecordData({ ...editRecordData, exitTime: e.target.value })}
-                  className="bg-gray-800 text-white border-gray-700"
-                />
-              </div>
+            <div>
+              <Label htmlFor="editCarBrand" className="text-gray-300">
+                Машины марк
+              </Label>
+              <Input
+                id="editCarBrand"
+                type="text"
+                value={editRecordData.carBrand}
+                onChange={(e) => setEditRecordData({ ...editRecordData, carBrand: e.target.value })}
+                placeholder="Машины маркийг оруулна уу"
+                className="bg-gray-800 text-white border-gray-700"
+              />
+            </div>
+            <div>
+              <Label htmlFor="editParkingArea" className="text-gray-300">
+                Талбай
+              </Label>
+              <select
+                id="editParkingArea"
+                value={editRecordData.parkingArea}
+                onChange={(e) => setEditRecordData({ ...editRecordData, parkingArea: e.target.value })}
+                className="w-full px-3 py-2 bg-gray-800 text-white border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="general">Талбай</option>
+                <option value="leather">Тен</option>
+                <option value="spare">Сафари</option>
+                <option value="safari">Сафари талбай</option>
+              </select>
+            </div>
+            <div>
+              <Label htmlFor="editEntryTime" className="text-gray-300">
+                Орсон цаг
+              </Label>
+              <Input
+                id="editEntryTime"
+                type="text"
+                value={editRecordData.entryTime}
+                onChange={(e) => setEditRecordData({ ...editRecordData, entryTime: e.target.value })}
+                placeholder="Орсон цагийг оруулна уу"
+                className="bg-gray-800 text-white border-gray-700"
+              />
+            </div>
+            <div>
+              <Label htmlFor="editExitTime" className="text-gray-300">
+                Гарсан цаг
+              </Label>
+              <Input
+                id="editExitTime"
+                type="text"
+                value={editRecordData.exitTime}
+                onChange={(e) => setEditRecordData({ ...editRecordData, exitTime: e.target.value })}
+                placeholder="Гарсан цагийг оруулна уу"
+                className="bg-gray-800 text-white border-gray-700"
+              />
+            </div>
+            <div>
+              <Label htmlFor="editParkingDuration" className="text-gray-300">
+                Зогссон хугацаа
+              </Label>
+              <Input
+                id="editParkingDuration"
+                type="text"
+                value={editRecordData.parkingDuration}
+                onChange={(e) => setEditRecordData({ ...editRecordData, parkingDuration: e.target.value })}
+                placeholder="Зогссон хугацааг оруулна уу"
+                className="bg-gray-800 text-white border-gray-700"
+              />
             </div>
             <div>
               <Label htmlFor="editAmount" className="text-gray-300">
-                Төлбөр (₮)
+                Төлбөр
               </Label>
               <Input
                 id="editAmount"
                 type="number"
                 value={editRecordData.amount}
                 onChange={(e) => setEditRecordData({ ...editRecordData, amount: Number(e.target.value) })}
+                placeholder="Төлбөрийг оруулна уу"
                 className="bg-gray-800 text-white border-gray-700"
-                min="0"
               />
             </div>
             <div>
               <Label htmlFor="editImages" className="text-gray-300">
-                Зураг нэмэх
+                Зураг
               </Label>
               <Input
                 id="editImages"
@@ -4092,21 +3521,22 @@ export default function DirectorPage() {
                 onChange={handleImageUploadForRecord}
                 className="bg-gray-800 text-white border-gray-700"
               />
-              <div className="flex flex-wrap gap-2 mt-2">
+              <div className="flex space-x-2 mt-2">
                 {editRecordData.images.map((image, index) => (
                   <div key={index} className="relative">
-                    <img
-                      src={image || "/placeholder.svg"}
-                      alt={`Record Image ${index + 1}`}
-                      className="w-20 h-20 object-cover rounded"
-                    />
+                    <Avatar className="h-12 w-12">
+                      <AvatarImage src={image || "/placeholder.svg"} />
+                      <AvatarFallback>
+                        <UserIcon className="h-6 w-6" />
+                      </AvatarFallback>
+                    </Avatar>
                     <Button
-                      variant="destructive"
+                      variant="ghost"
                       size="icon"
-                      className="absolute -top-2 -right-2 h-5 w-5 rounded-full"
                       onClick={() => handleDeleteRecordImage(index)}
+                      className="absolute top-0 right-0 bg-gray-700 text-white hover:bg-gray-600"
                     >
-                      <X className="h-3 w-3" />
+                      <X className="h-4 w-4" />
                     </Button>
                   </div>
                 ))}
@@ -4123,8 +3553,8 @@ export default function DirectorPage() {
             </Button>
             <Button
               onClick={handleSaveRecordEdit}
-              disabled={editRecordLoading}
               className="bg-blue-600 text-white hover:bg-blue-700"
+              disabled={editRecordLoading}
             >
               {editRecordLoading ? (
                 <>
@@ -4139,53 +3569,112 @@ export default function DirectorPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Image Viewer Dialog */}
-      <Dialog open={showImageViewer} onOpenChange={setShowImageViewer}>
-        <DialogContent className="max-w-4xl bg-gray-900 text-white border-gray-700 p-0">
-          <DialogHeader className="p-4">
-            <DialogTitle className="text-white">Зураг харах</DialogTitle>
-            <DialogDescription className="text-gray-400">
-              Зураг ({currentImageIndex + 1} / {currentImages.length})
-            </DialogDescription>
+      {/* Date Range Export Dialog */}
+      <Dialog open={showDateRangeDialog} onOpenChange={setShowDateRangeDialog}>
+        <DialogContent className="bg-gray-900 text-white border-gray-700">
+          <DialogHeader>
+            <DialogTitle className="text-white">Огнооны хүрээ сонгох</DialogTitle>
+            <DialogDescription className="text-gray-400">Тайлангийн хугацааг сонгоно уу</DialogDescription>
           </DialogHeader>
-          <div className="relative flex items-center justify-center bg-black">
-            {currentImages.length > 0 && (
-              <img
-                src={currentImages[currentImageIndex] || "/placeholder.svg"}
-                alt={`Image ${currentImageIndex + 1}`}
-                className="max-h-[70vh] object-contain"
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="dateRangeStart" className="text-gray-300">
+                Эхлэх огноо
+              </Label>
+              <Input
+                id="dateRangeStart"
+                type="date"
+                value={dateRangeStart}
+                onChange={(e) => setDateRangeStart(e.target.value)}
+                className="bg-gray-800 text-white border-gray-700"
               />
-            )}
-            {currentImages.length > 1 && (
+            </div>
+            <div>
+              <Label htmlFor="dateRangeEnd" className="text-gray-300">
+                Дуусах огноо
+              </Label>
+              <Input
+                id="dateRangeEnd"
+                type="date"
+                value={dateRangeEnd}
+                onChange={(e) => setDateRangeEnd(e.target.value)}
+                className="bg-gray-800 text-white border-gray-700"
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="deleteAfterExport"
+                checked={deleteAfterExport}
+                onCheckedChange={setDeleteAfterExport}
+                className="text-blue-500"
+              />
+              <Label
+                htmlFor="deleteAfterExport"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed text-gray-300"
+              >
+                Экспортын дараа устгах
+              </Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowDateRangeDialog(false)}
+              className="bg-gray-800 text-white border-gray-700 hover:bg-gray-700"
+            >
+              Цуцлах
+            </Button>
+            <Button
+              onClick={handleDateRangeExport}
+              className="bg-blue-600 text-white hover:bg-blue-700"
+              disabled={exportLoading}
+            >
+              {exportLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Экспортлож байна...
+                </>
+              ) : (
+                "Экспортлох"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Image Viewer */}
+      <Dialog open={showImageViewer} onOpenChange={setShowImageViewer}>
+        <DialogContent className="bg-black text-white border-none shadow-none">
+          <div className="relative">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={closeImageViewer}
+              className="absolute top-2 right-2 text-gray-300 hover:bg-gray-800"
+            >
+              <X className="h-6 w-6" />
+            </Button>
+            {currentImages.length > 0 && (
               <>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute left-2 top-1/2 -translate-y-1/2 bg-gray-800/50 hover:bg-gray-700/70 text-white"
-                  onClick={prevImage}
-                >
-                  {"<"}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-gray-800/50 hover:bg-gray-700/70 text-white"
-                  onClick={nextImage}
-                >
-                  {">"}
-                </Button>
+                <img
+                  src={currentImages[currentImageIndex] || "/placeholder.svg"}
+                  alt={`Image ${currentImageIndex + 1}`}
+                  className="max-h-[80vh] max-w-[80vw] object-contain"
+                />
+                <div className="absolute bottom-2 left-2 flex space-x-2">
+                  <Button variant="ghost" size="icon" onClick={prevImage} className="text-gray-300 hover:bg-gray-800">
+                    <ChevronDown className="h-6 w-6 transform rotate-90" />
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={nextImage} className="text-gray-300 hover:bg-gray-800">
+                    <ChevronDown className="h-6 w-6 transform -rotate-90" />
+                  </Button>
+                </div>
+                <div className="absolute bottom-2 right-2 text-gray-300">
+                  {currentImageIndex + 1} / {currentImages.length}
+                </div>
               </>
             )}
           </div>
-          <DialogFooter className="p-4">
-            <Button
-              variant="outline"
-              onClick={closeImageViewer}
-              className="bg-gray-800 text-white border-gray-700 hover:bg-gray-700"
-            >
-              Хаах
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
