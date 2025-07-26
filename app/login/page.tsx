@@ -140,7 +140,7 @@ export default function LoginPage() {
             router.push("/")
             break
           default:
-            setError("Тодорхойгүй хэрэглэгчийн төрөл")
+            setError("Тодорхойгүй хэрэглэгчий�� төрөл")
             await auth.signOut()
         }
       } else {
